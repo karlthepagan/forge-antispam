@@ -1,15 +1,12 @@
 package karl.codes.minecraft.antispam;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import karl.codes.java.ListCharSequence;
+import karl.codes.minecraft.ChatEvents;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -20,9 +17,7 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import scala.Char;
 
-import javax.annotation.Nullable;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -37,31 +32,6 @@ import java.util.regex.Pattern;
 @SideOnly(Side.CLIENT)
 public class AntiSpam {
     public static final String MODID = "antispam";
-
-    private static Function<IChatComponent, CharSequence> TEXT_REDUCE_NOBAKE = new Function<IChatComponent, CharSequence>() {
-        @Nullable
-        @Override
-        public CharSequence apply(@Nullable IChatComponent input) {
-            return reduce(false, input);
-        }
-    };
-
-    private static Function<IChatComponent, CharSequence> TEXT_REDUCE = new Function<IChatComponent, CharSequence>() {
-        @Nullable
-        @Override
-        public CharSequence apply(IChatComponent input) {
-            return reduce(true, input);
-        }
-    };
-
-    private static CharSequence reduce(boolean bake, IChatComponent input) {
-        List<IChatComponent> siblings = input.getSiblings();
-        if(siblings.size() == 0) {
-            return input.getUnformattedTextForChat();
-        } else {
-            return new ListCharSequence(bake, Lists.transform(siblings,TEXT_REDUCE_NOBAKE));
-        }
-    }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
@@ -86,12 +56,13 @@ public class AntiSpam {
 
     @SubscribeEvent
     public void event(ClientChatReceivedEvent event) {
-        Pattern p = null;
-
-        List<IChatComponent> siblings = event.message.getSiblings();
         // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
-        CharSequence text = new ListCharSequence(Lists.transform(siblings,TEXT_REDUCE));
+        CharSequence text = ChatEvents.asCharSequence(event);
 
+        applyRules(event, text);
+    }
+
+    public void applyRules(Event event, CharSequence text) {
         for(Rule r : rules) {
             while(r != null) {
                 Matcher regex = r.pattern.matcher(text);
@@ -103,10 +74,12 @@ public class AntiSpam {
                             event.setCanceled(true);
                             return;
                         case NEXT:
-                            // fall thru!
+                            // equivalent to fall thru, easier to debug tho
+                            r = r.onMiss;
+                            continue;
                     }
                 }
-                // miss or falling thru!
+                // miss
                 r = r.onMiss;
             }
         }
@@ -123,7 +96,7 @@ public class AntiSpam {
     static class Rule {
         public Pattern pattern;
         public Action onHit = Action.DENY;
-        public Rule onMiss;
+        public Rule onMiss; // TODO list
 
         // TODO intellij validator hint?
         public Rule(String pattern, Action onHit) {
@@ -151,11 +124,17 @@ public class AntiSpam {
 
         @Override
         public String getCommandUsage(ICommandSender iCommandSender) {
-            return "[record id] [action] [args]\n" +
-                    "0|hit0|last|lastHit (show)\n" +
-                    "1|hit1 ok|permit (regex)\n" + // fails if regex doesn't match, if regex matches a new rule is added before the final position in chain (or inserts a new chain if it is the head)
-                    "miss0 deny (regex)\n" + // fails if regex doesn't match, if regex matches a new rule is added as a new chain
-                    "";
+            return "[action] [args]\n" +
+                    // TODO look at apache WAF module? command line api?
+                    "(show) (10) (hits)\n" + // show last hits (denied events)
+                    // finds last matching denied events, fails if none found
+                    // new rule is added before the final position in chain (or inserts a new chain if it is the head)
+                    "permit [string|/regex/]\n" +
+                    // finds last matching allowed events, fails if none found
+                    // new rule is added as a new chain or immediately before the proceeding OK rule
+                    "deny [string|/regex/]\n" +
+                    "commit (all|# ... # #)" + // commit the recorded candidate rules
+                    "abort"; // abort auto-commit (10 seconds after a unique rule is staged it will auto-commit)
         }
 
         @Override
@@ -164,23 +143,57 @@ public class AntiSpam {
                 throw new CommandException("AntiSpam command is too short");
             }
 
-            String recordId = null,subcommand = null,pattern = null;
+            String arg0 = null,arg1 = null,arg2 = null;
 
             switch(strings.length) {
-                case 0:
-                    throw new CommandException("AntiSpam command is too short");
-                case 1:
-                    subcommand = "show";
+                case 3:
+                    arg2 = strings[2];
                 case 2:
-                    pattern = "";
+                    arg1 = strings[1];
+                case 1:
+                    arg1 = strings[0];
                 default:
-                    if(pattern == null) pattern = strings[2];
-                    if(subcommand == null) subcommand = strings[1];
-                    recordId = strings[0];
+                    if(arg0 == null) {
+                        arg0 = "show";
+                    }
+
+                    if(arg1 == null) {
+                        arg1 = defaultArg(arg0);
+                    }
+
+                    if(arg2 == null) {
+                        arg2 = defaultArg(arg0,arg1);
+                    }
             }
 
             // doesn't actually do anything yet, derps
-            iCommandSender.addChatMessage(new ChatComponentText(MessageFormat.format("record={0} command={1} pattern={2}",recordId,subcommand,pattern)));
+            iCommandSender.addChatMessage(new ChatComponentText(MessageFormat.format("command={0} arg1={1} arg2={2}",arg0,arg1,arg2)));
+        }
+
+        public String defaultArg(String command) throws CommandException {
+            switch (command) {
+                case "show":
+                    return "10";
+
+                case "commit":
+                    return "all";
+
+                case "permit":
+                case "deny":
+                    throw new CommandException(command + " requires 1 arg");
+
+                default:
+                    return null;
+            }
+        }
+
+        public String defaultArg(String command, String arg1) throws CommandException {
+            switch(command) {
+                case "show":
+                    return "hits";
+                default:
+                    return null;
+            }
         }
     }
 }

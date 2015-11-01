@@ -1,2 +1,2 @@
-# forge-eventspy
-MinecraftForge development toolkit to watch for events
+# forge-antispam
+MinecraftForge client chat filtering engine with default rules to hide spam
