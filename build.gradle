@@ -1,0 +1,74 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            name = 'forge'
+            url = 'http://files.minecraftforge.net/maven'
+        }
+        maven {
+            name = 'sonatype'
+            url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+        }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+    }
+}
+
+// 1.2-SNAPSHOT
+apply plugin: 'forge'
+
+// 2.0?
+//plugins {
+//    id 'net.minecraftforge.gradle.forge' version '2.0.0'
+//}
+
+version = '1.8-0.1-SNAPSHOT'
+group= 'karl.codes-minecraft'
+archivesBaseName = 'antispam'
+
+minecraft {
+//    version = '10.13.4.1517-1.7.10'
+    version = '1.8-11.14.3.1450' // recommended
+//    version = '1.8-11.14.3.1504' // inventory-tweaks FG2
+//    version = '1.8-11.14.3.1521' // latest FG2
+//    mappings = 'snapshot_20150823'
+}
+
+dependencies {
+    testCompile 'junit:junit:4.12'
+}
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+compileJava {
+    options.debug = true
+    options.debugOptions.debugLevel = 'source,lines,vars'
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', project.minecraft.version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+                
+        // replace version and mcversion
+        expand version: project.version, mcversion: project.minecraft.version
+    }
+    
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+    }
+
+    project {
+        vcs = 'Git'
+    }
+}

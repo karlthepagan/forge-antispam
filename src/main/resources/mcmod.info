@@ -1,0 +1,16 @@
+[
+{
+  "modid": "antispam",
+  "name": "Anti-SPAM",
+  "description": "Suppress server advertisements and minimize repeated warnings",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["@karlthepagan"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
