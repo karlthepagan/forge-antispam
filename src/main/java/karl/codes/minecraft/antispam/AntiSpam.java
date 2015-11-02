@@ -20,6 +20,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,6 +42,7 @@ public class AntiSpam {
         ClientCommandHandler.instance.registerCommand(new Command());
     }
 
+    private static AtomicInteger IDS = new AtomicInteger(1);
     private final List<Rule> rules = ImmutableList.<Rule>builder()
             // factions nametag chat
             .add(new Rule("^<", Action.OK))
@@ -50,33 +54,56 @@ public class AntiSpam {
             // hbar
             .add(new Rule("(?:[-+~=\\*]\\s?){3}", Action.DENY))
             // voting nag
-            .add(new Rule("(?i)voted? .* us", Action.DENY)
-                    .then("(?i)you .* votes?", Action.DENY))
+            .add(new Rule("(?i)vote", Action.NEXT)
+                    .then("(?i)voted? .* us", Action.DENY)
+                    .then("(?i)you .* votes?", Action.DENY)
+                    .then("(?i)has voted @", Action.DENY)
+                    .then("^\\[Vote4Cash\\]", Action.DENY)
+                    .build())
             .build();
 
     @SubscribeEvent
     public void event(ClientChatReceivedEvent event) {
-        // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
-        CharSequence text = ChatEvents.asCharSequence(event);
+        Object textKey = ChatEvents.textKey(event.message);
+        Rule rule = applyCachedRule(textKey, event);
+        if(rule == null) {
+            // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
+            CharSequence text = ChatEvents.asCharSequence(event.message);
 
-        applyRules(event, text);
+            rule = applyRules(event, textKey, text);
+        } else {
+            textKey = null; // hooray!
+        }
+
+        if(textKey != null)
+            cachedHits.put(textKey,rule);
+
+        switch (rule.onHit) {
+            case DENY:
+                event.setCanceled(true);
+            default:
+                // do nothing
+        }
     }
 
-    public void applyRules(Event event, CharSequence text) {
+    // TODO LRU
+    private final ConcurrentMap<Object,Rule> cachedHits = new ConcurrentHashMap<>();
+
+    private Rule applyCachedRule(Object textKey, ClientChatReceivedEvent event) {
+        return cachedHits.get(textKey);
+    }
+
+    public Rule applyRules(Event event, Object textKey, CharSequence text) {
         for(Rule r : rules) {
             while(r != null) {
-                Matcher regex = r.pattern.matcher(text);
-                if (regex.find()) {
+                if (r.test(text)) {
                     switch (r.onHit) {
-                        case OK:
-                            return;
-                        case DENY:
-                            event.setCanceled(true);
-                            return;
                         case NEXT:
                             // equivalent to fall thru, easier to debug tho
                             r = r.onMiss;
                             continue;
+                        default:
+                            return r;
                     }
                 }
                 // miss
@@ -85,6 +112,7 @@ public class AntiSpam {
         }
 
         // all missed!
+        return Rule.OK;
     }
 
     enum Action {
@@ -94,9 +122,18 @@ public class AntiSpam {
     }
 
     static class Rule {
-        public Pattern pattern;
+        public static final Rule OK = new Rule("",Action.OK);
+
+        private final Pattern pattern;
         public Action onHit = Action.DENY;
         public Rule onMiss; // TODO list
+
+        public Rule root = this;
+
+        private static ConcurrentMap<String,String> EXAMPLES = new ConcurrentHashMap<>();
+
+        private final int id = IDS.getAndIncrement();
+        public String stringify = null;
 
         // TODO intellij validator hint?
         public Rule(String pattern, Action onHit) {
@@ -107,7 +144,38 @@ public class AntiSpam {
         public Rule then(String pattern, Action onHit) {
             Rule next = new Rule(pattern, onHit);
             this.onMiss = next;
+            next.root = this.root;
+
             return next;
+        }
+
+        public Rule build() {
+            return this.root;
+        }
+
+        public boolean test(CharSequence input) {
+            Matcher m = pattern.matcher(input);
+
+            if(!m.find()) return false;
+
+            if(stringify == null) {
+                String example = m.group();
+                if(example.length() > 7)
+                    example = example.substring(0,4) + "...";
+                if(EXAMPLES.putIfAbsent(example, example) == null) {
+                    String s = id + " - " + example;
+                    if(onMiss != null)
+                        s = s + " -> " + onMiss.id;
+                    stringify = s;
+                }
+            }
+
+            return true;
+        }
+
+        public String toString() {
+            if(stringify != null) return stringify;
+            return String.valueOf(id);
         }
     }
 
@@ -127,6 +195,7 @@ public class AntiSpam {
             return "[action] [args]\n" +
                     // TODO look at apache WAF module? command line api?
                     "(show) (10) (hits)\n" + // show last hits (denied events)
+                    "cache (clear)" + // show cache and example hits
                     // finds last matching denied events, fails if none found
                     // new rule is added before the final position in chain (or inserts a new chain if it is the head)
                     "permit [string|/regex/]\n" +
@@ -139,20 +208,17 @@ public class AntiSpam {
 
         @Override
         public void processCommand(ICommandSender iCommandSender, String[] strings) throws CommandException {
-            if(strings.length < 1) {
-                throw new CommandException("AntiSpam command is too short");
-            }
-
             String arg0 = null,arg1 = null,arg2 = null;
 
             switch(strings.length) {
+                default:
                 case 3:
                     arg2 = strings[2];
                 case 2:
                     arg1 = strings[1];
                 case 1:
-                    arg1 = strings[0];
-                default:
+                    arg0 = strings[0];
+                case 0:
                     if(arg0 == null) {
                         arg0 = "show";
                     }
@@ -168,6 +234,22 @@ public class AntiSpam {
 
             // doesn't actually do anything yet, derps
             iCommandSender.addChatMessage(new ChatComponentText(MessageFormat.format("command={0} arg1={1} arg2={2}",arg0,arg1,arg2)));
+
+            switch(arg0) {
+                case "cache":
+                    switch(arg1) {
+                        case "":
+                            for (Rule r : cachedHits.values()) {
+                                iCommandSender.addChatMessage(new ChatComponentText(r.toString()));
+                            }
+                            return;
+                        case "clear":
+                            cachedHits.clear();
+                            return;
+                    }
+                default:
+                    iCommandSender.addChatMessage(new ChatComponentText("not yet implemented"));
+            }
         }
 
         public String defaultArg(String command) throws CommandException {
@@ -183,7 +265,7 @@ public class AntiSpam {
                     throw new CommandException(command + " requires 1 arg");
 
                 default:
-                    return null;
+                    return "";
             }
         }
 
@@ -192,7 +274,7 @@ public class AntiSpam {
                 case "show":
                     return "hits";
                 default:
-                    return null;
+                    return "";
             }
         }
     }
