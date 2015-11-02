@@ -22,6 +22,7 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod(
         useMetadata = true,
@@ -32,6 +33,8 @@ import java.util.concurrent.ConcurrentMap;
 @SideOnly(Side.CLIENT)
 public class AntiSpam {
     public static final String MODID = "antispam";
+
+    public static AtomicInteger IDS = new AtomicInteger(1);
 
     private final List<Rule> rules = DefaultRules.factionsDefaults();
 
@@ -92,6 +95,10 @@ public class AntiSpam {
 
         // all missed!
         return Rule.OK;
+    }
+
+    public static int nextRuleId() {
+        return IDS.getAndIncrement();
     }
 
     class Command extends CommandBase {

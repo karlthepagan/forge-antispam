@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 */
 public class Rule {
     public static final Rule OK = new Rule("", Action.OK);
-    private static AtomicInteger IDS = new AtomicInteger(1);
 
     private final Pattern pattern;
     public Action onHit = Action.DENY;
@@ -23,7 +22,7 @@ public class Rule {
 
     private static ConcurrentMap<String,String> EXAMPLES = new ConcurrentHashMap<>();
 
-    private final int id = IDS.getAndIncrement();
+    private final int id = AntiSpam.nextRuleId();
     public String stringify = null;
 
     // TODO intellij validator hint?
