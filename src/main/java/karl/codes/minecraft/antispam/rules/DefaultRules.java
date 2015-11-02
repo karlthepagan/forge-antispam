@@ -20,7 +20,8 @@ public class DefaultRules {
                 // link spam
                 .add(new Rule("^(?i).links.\\s", Action.DENY))
                 // hbar
-                .add(new Rule("(?:[-+~=\\*]\\s?){3}", Action.DENY))
+//                .add(new Rule("(?:[-+~=\\*]\\){3}", Action.DENY))
+                        // TODO permit hbar for factions map!
                 // voting nag
                 .add(new Rule("(?i)vote", Action.NEXT)
                         .then("(?i)voted? .* us", Action.DENY)
