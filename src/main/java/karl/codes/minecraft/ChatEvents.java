@@ -2,23 +2,21 @@ package karl.codes.minecraft;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
-import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import karl.codes.java.ListCharSequence;
 import net.minecraft.util.IChatComponent;
-import net.minecraftforge.client.event.ClientChatReceivedEvent;
-import scala.Char;
 
 import javax.annotation.Nullable;
 import java.nio.charset.Charset;
 import java.util.List;
 
 /**
- * Created by karl on 11/1/15.
+ * Minecraft chat text processing
+ *
+ * TODO reobf support
  */
 public class ChatEvents {
     public static final HashFunction STRING_HASH = Hashing.goodFastHash(32);

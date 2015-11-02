@@ -1,7 +1,8 @@
 package karl.codes.minecraft.antispam;
 
-import com.google.common.collect.ImmutableList;
 import karl.codes.minecraft.ChatEvents;
+import karl.codes.minecraft.antispam.rules.DefaultRules;
+import karl.codes.minecraft.antispam.rules.Rule;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -13,7 +14,6 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.Event;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -22,9 +22,6 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Mod(
         useMetadata = true,
@@ -36,31 +33,16 @@ import java.util.regex.Pattern;
 public class AntiSpam {
     public static final String MODID = "antispam";
 
+    private final List<Rule> rules = DefaultRules.factionsDefaults();
+
+    // TODO LRU
+    private final ConcurrentMap<Object,Rule> cachedHits = new ConcurrentHashMap<>();
+
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
         ClientCommandHandler.instance.registerCommand(new Command());
     }
-
-    private static AtomicInteger IDS = new AtomicInteger(1);
-    private final List<Rule> rules = ImmutableList.<Rule>builder()
-            // factions nametag chat
-            .add(new Rule("^<", Action.OK))
-            // clearlag
-            .add(new Rule("^\\[ClearLag\\]\\s", Action.OK))
-            .add(new Rule("^\\[mcMMO\\]", Action.OK)) // TODO rate-limit mcMMO and deny 2nd message which contains url
-            // link spam
-            .add(new Rule("^(?i).links.\\s", Action.DENY))
-            // hbar
-            .add(new Rule("(?:[-+~=\\*]\\s?){3}", Action.DENY))
-            // voting nag
-            .add(new Rule("(?i)vote", Action.NEXT)
-                    .then("(?i)voted? .* us", Action.DENY)
-                    .then("(?i)you .* votes?", Action.DENY)
-                    .then("(?i)has voted @", Action.DENY)
-                    .then("^\\[Vote4Cash\\]", Action.DENY)
-                    .build())
-            .build();
 
     @SubscribeEvent
     public void event(ClientChatReceivedEvent event) {
@@ -86,9 +68,6 @@ public class AntiSpam {
         }
     }
 
-    // TODO LRU
-    private final ConcurrentMap<Object,Rule> cachedHits = new ConcurrentHashMap<>();
-
     private Rule applyCachedRule(Object textKey, ClientChatReceivedEvent event) {
         return cachedHits.get(textKey);
     }
@@ -113,70 +92,6 @@ public class AntiSpam {
 
         // all missed!
         return Rule.OK;
-    }
-
-    enum Action {
-        OK,
-        DENY,
-        NEXT;
-    }
-
-    static class Rule {
-        public static final Rule OK = new Rule("",Action.OK);
-
-        private final Pattern pattern;
-        public Action onHit = Action.DENY;
-        public Rule onMiss; // TODO list
-
-        public Rule root = this;
-
-        private static ConcurrentMap<String,String> EXAMPLES = new ConcurrentHashMap<>();
-
-        private final int id = IDS.getAndIncrement();
-        public String stringify = null;
-
-        // TODO intellij validator hint?
-        public Rule(String pattern, Action onHit) {
-            this.pattern = Pattern.compile(pattern);
-            this.onHit = onHit;
-        }
-
-        public Rule then(String pattern, Action onHit) {
-            Rule next = new Rule(pattern, onHit);
-            this.onMiss = next;
-            next.root = this.root;
-
-            return next;
-        }
-
-        public Rule build() {
-            return this.root;
-        }
-
-        public boolean test(CharSequence input) {
-            Matcher m = pattern.matcher(input);
-
-            if(!m.find()) return false;
-
-            if(stringify == null) {
-                String example = m.group();
-                if(example.length() > 7)
-                    example = example.substring(0,4) + "...";
-                if(EXAMPLES.putIfAbsent(example, example) == null) {
-                    String s = id + " - " + example;
-                    if(onMiss != null)
-                        s = s + " -> " + onMiss.id;
-                    stringify = s;
-                }
-            }
-
-            return true;
-        }
-
-        public String toString() {
-            if(stringify != null) return stringify;
-            return String.valueOf(id);
-        }
     }
 
     class Command extends CommandBase {
