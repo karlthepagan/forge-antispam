@@ -12,6 +12,7 @@ import net.minecraft.util.IChatComponent;
 import javax.annotation.Nullable;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Minecraft chat text processing
@@ -42,9 +43,18 @@ public class ChatEvents {
         return reduce(true, input);
     }
 
+    public static String toString(IChatComponent input) {
+        return reduce(false, input).toString();
+    }
+
     public static int hashCode(IChatComponent input) {
+        return hashCode(input,0);
+    }
+
+    private static int hashCode(IChatComponent input, int seed) {
         Charset charset = Charsets.UTF_8;
         Hasher h = STRING_HASH.newHasher();
+        h.putInt(seed);
         // depth-first iteration, using stack
         hash(input, charset, h);
         return h.hash().asInt();
@@ -64,7 +74,8 @@ public class ChatEvents {
 
     public static class TextKey {
         // TODO weak reference
-        public IChatComponent chat;
+        private IChatComponent chat;
+        private int seed = 0;
         private int hash = Integer.MAX_VALUE;
 
         @Override
@@ -88,7 +99,7 @@ public class ChatEvents {
         @Override
         public int hashCode() {
             if(hash == Integer.MAX_VALUE) {
-                hash = ChatEvents.hashCode(chat);
+                hash = ChatEvents.hashCode(chat,seed);
                 chat = null;
             }
 
@@ -99,6 +110,13 @@ public class ChatEvents {
     public static Object textKey(IChatComponent input) {
         TextKey key = new TextKey();
         key.chat = input;
+        return key;
+    }
+
+    public static Object textKey(IChatComponent input, Object attachment) {
+        TextKey key = new TextKey();
+        key.chat = input;
+        key.seed = Objects.hashCode(attachment);
         return key;
     }
 }

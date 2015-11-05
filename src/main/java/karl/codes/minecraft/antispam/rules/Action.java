@@ -6,5 +6,21 @@ package karl.codes.minecraft.antispam.rules;
 public enum Action {
     OK,
     DENY,
-    NEXT;
+    NEXT,
+    PASS;
+
+    public Action getOpposite() {
+        switch (this) {
+            case OK:
+                return DENY;
+            case DENY:
+                return OK;
+            case NEXT: // check more rules
+                return PASS;
+            case PASS: // continue down chain
+                return NEXT;
+            default:
+                throw new IllegalStateException(this + " has no opposite");
+        }
+    }
 }

@@ -1,27 +1,29 @@
 package karl.codes.minecraft.antispam;
 
+import com.google.common.base.Function;
 import karl.codes.minecraft.ChatEvents;
-import karl.codes.minecraft.antispam.rules.DefaultRules;
 import karl.codes.minecraft.antispam.rules.Rule;
+import karl.codes.antispam.AntiSpamRuntime;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nullable;
 import java.text.MessageFormat;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod(
@@ -34,67 +36,65 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AntiSpam {
     public static final String MODID = "antispam";
 
+    private AntiSpamRuntime<ClientChatReceivedEvent> runtime = new AntiSpamRuntime<>(
+            new Function<ClientChatReceivedEvent, CharSequence>() {
+                @Nullable
+                @Override
+                public CharSequence apply(ClientChatReceivedEvent input) {
+                    return ChatEvents.asCharSequence(input.message);
+                }
+            });
+
     public static AtomicInteger IDS = new AtomicInteger(1);
 
-    private final List<Rule> rules = DefaultRules.factionsDefaults();
+    private boolean passive = false;
 
-    // TODO LRU
-    private final ConcurrentMap<Object,Rule> cachedHits = new ConcurrentHashMap<>();
+    private String lastHitName = null;
+
+    private GuiIngame gui;
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
         ClientCommandHandler.instance.registerCommand(new Command());
+        gui = Minecraft.getMinecraft().ingameGUI;
+    }
+
+    @SubscribeEvent
+    public void onLoad(WorldEvent.Load event) {
+        runtime.clear();
     }
 
     @SubscribeEvent
     public void event(ClientChatReceivedEvent event) {
-        Object textKey = ChatEvents.textKey(event.message);
-        Rule rule = applyCachedRule(textKey, event);
-        if(rule == null) {
-            // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
-            CharSequence text = ChatEvents.asCharSequence(event.message);
+        String last = lastHitName;
+        Object textKey = ChatEvents.textKey(event.message, last);
 
-            rule = applyRules(event, textKey, text);
-        } else {
-            textKey = null; // hooray!
-        }
-
-        if(textKey != null)
-            cachedHits.put(textKey,rule);
+        Rule rule = runtime.chatEvent(textKey, event, last);
 
         switch (rule.onHit) {
             case DENY:
-                event.setCanceled(true);
+                if(getPassive()) {
+                    IChatComponent old = event.message;
+                    event.message = new ChatComponentText("BLOCKED: ");
+                    event.message.appendSibling(old);
+//                    gui.getChatGUI().printChatMessage(new ChatComponentText("BLOCKED MESSAGE"));
+                } else {
+                    event.setCanceled(true);
+                }
+
             default:
                 // do nothing
+                lastHitName = rule.name;
         }
     }
 
-    private Rule applyCachedRule(Object textKey, ClientChatReceivedEvent event) {
-        return cachedHits.get(textKey);
+    public boolean getPassive() {
+        return passive;
     }
 
-    public Rule applyRules(Event event, Object textKey, CharSequence text) {
-        for(Rule r : rules) {
-            while(r != null) {
-                if (r.test(text)) {
-                    switch (r.onHit) {
-                        case NEXT:
-                            // equivalent to fall thru, easier to debug tho
-                            r = r.onMiss;
-                            continue;
-                        default:
-                            return r;
-                    }
-                }
-                // miss
-                r = r.onMiss;
-            }
-        }
-
-        // all missed!
-        return Rule.OK;
+    public void setPassive(boolean passive) {
+        this.passive = passive;
     }
 
     public static int nextRuleId() {
@@ -117,7 +117,7 @@ public class AntiSpam {
             return "[action] [args]\n" +
                     // TODO look at apache WAF module? command line api?
                     "(show) (10) (hits)\n" + // show last hits (denied events)
-                    "cache (clear)" + // show cache and example hits
+                    "cache (show|clear)" + // show cache and example hits
                     // finds last matching denied events, fails if none found
                     // new rule is added before the final position in chain (or inserts a new chain if it is the head)
                     "permit [string|/regex/]\n" +
@@ -125,7 +125,8 @@ public class AntiSpam {
                     // new rule is added as a new chain or immediately before the proceeding OK rule
                     "deny [string|/regex/]\n" +
                     "commit (all|# ... # #)" + // commit the recorded candidate rules
-                    "abort"; // abort auto-commit (10 seconds after a unique rule is staged it will auto-commit)
+                    "abort" + // abort auto-commit (10 seconds after a unique rule is staged it will auto-commit)
+                    "hold (10)"; // set auto-commit hold for a specified time
         }
 
         @Override
@@ -161,14 +162,17 @@ public class AntiSpam {
                 case "cache":
                     switch(arg1) {
                         case "":
-                            for (Rule r : cachedHits.values()) {
+                            for (Rule r : runtime.getCache()) {
                                 iCommandSender.addChatMessage(new ChatComponentText(r.toString()));
                             }
                             return;
                         case "clear":
-                            cachedHits.clear();
+                            runtime.clear();
                             return;
                     }
+                case "debug":
+                    setPassive(!getPassive());
+                    return;
                 default:
                     iCommandSender.addChatMessage(new ChatComponentText("not yet implemented"));
             }

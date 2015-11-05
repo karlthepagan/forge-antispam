@@ -4,6 +4,10 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 /**
  * Created by karl on 11/1/15.
  */
@@ -13,6 +17,26 @@ public class AntiSpamFixture {
         for(String s : segments) {
             message.appendText(s);
         }
-        return new ClientChatReceivedEvent((byte)0,message);
+        return new Chat(message);
+    }
+
+    public static List<ClientChatReceivedEvent> chatEvents(Iterator<String> text, int size) {
+        ArrayList<ClientChatReceivedEvent> output = new ArrayList<>(size);
+
+        while(text.hasNext()) {
+            output.add(new Chat(new ChatComponentText(text.next())));
+        }
+
+        return output;
+    }
+
+    public static class Chat extends ClientChatReceivedEvent {
+        public Chat(IChatComponent message) {
+            super((byte)0,message);
+        }
+
+        public boolean isCancelable() {
+            return true;
+        }
     }
 }
