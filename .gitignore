@@ -17,3 +17,5 @@
 /*.iml
 /usernamecache.json
 /secret*
+/hs_err_pid*.log
+/servers.dat
