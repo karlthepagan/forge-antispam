@@ -1,4 +1,4 @@
-package karl.codes.antispam;
+package karl.codes.rules;
 
 /**
 * Created by karl on 11/1/15.

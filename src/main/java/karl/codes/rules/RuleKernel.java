@@ -1,4 +1,4 @@
-package karl.codes.antispam;
+package karl.codes.rules;
 
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;

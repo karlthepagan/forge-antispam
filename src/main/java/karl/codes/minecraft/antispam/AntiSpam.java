@@ -1,10 +1,10 @@
 package karl.codes.minecraft.antispam;
 
 import com.google.common.base.Function;
-import karl.codes.antispam.Rule;
+import karl.codes.rules.Rule;
 import karl.codes.minecraft.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
-import karl.codes.antispam.RuleKernel;
+import karl.codes.rules.RuleKernel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiIngame;

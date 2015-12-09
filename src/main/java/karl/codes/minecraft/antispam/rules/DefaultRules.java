@@ -1,8 +1,8 @@
 package karl.codes.minecraft.antispam.rules;
 
 import com.google.common.collect.ImmutableList;
-import karl.codes.antispam.Action;
-import karl.codes.antispam.Rule;
+import karl.codes.rules.Action;
+import karl.codes.rules.Rule;
 
 import java.util.List;
 
