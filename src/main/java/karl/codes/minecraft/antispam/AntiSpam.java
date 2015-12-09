@@ -4,7 +4,6 @@ import com.google.common.base.Function;
 import karl.codes.antispam.IRule;
 import karl.codes.minecraft.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
-import karl.codes.minecraft.antispam.rules.Rule;
 import karl.codes.antispam.AntiSpamRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;

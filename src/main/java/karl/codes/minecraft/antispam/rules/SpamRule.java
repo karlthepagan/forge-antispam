@@ -12,14 +12,14 @@ import java.util.regex.Pattern;
 /**
 * Created by karl on 11/1/15.
 */
-public class Rule implements IRule<CharSequence> {
-    public static final Rule OK = new Rule("", Action.OK);
+public class SpamRule implements IRule<CharSequence> {
+    public static final SpamRule OK = new SpamRule("", Action.OK);
 
     private Pattern pattern;
     private String name = null;
     private Action onHit = Action.DENY;
-    private Rule onMiss; // TODO list
-    private Rule root = this; // used for builder notation :/
+    private SpamRule onMiss; // TODO list
+    private SpamRule root = this; // used for builder notation :/
     /**
      * name required for last hit
      */
@@ -32,25 +32,25 @@ public class Rule implements IRule<CharSequence> {
     private String stringify = null;
 
     // TODO intellij validator hint?
-    public Rule(String regex, Action onHit) {
+    public SpamRule(String regex, Action onHit) {
         this(Pattern.compile(regex),onHit);
     }
 
-    protected Rule(Pattern regex, Action onHit) {
+    protected SpamRule(Pattern regex, Action onHit) {
         this.pattern = regex;
         this.onHit = onHit;
     }
 
-    public Rule named(String name) {
+    public SpamRule named(String name) {
         this.name = name;
 
         return this;
     }
 
     // TODO no chain in builder
-    public Rule notAfter(String lastHit) {
+    public SpamRule notAfter(String lastHit) {
         // capture a hit, process chain only if pattern matches
-        Rule chain = new Rule(this.pattern,Action.NEXT)
+        SpamRule chain = new SpamRule(this.pattern,Action.NEXT)
                 // terminal state for matching last hit
                 .then(".",this.onHit.getOpposite()).named(lastHit).ifAfter(lastHit)
                 // original terminal state
@@ -61,7 +61,7 @@ public class Rule implements IRule<CharSequence> {
         return chain.build();
     }
 
-    public Rule ifAfter(String lastHit) {
+    public SpamRule ifAfter(String lastHit) {
         if(lastHit.startsWith("/") && lastHit.endsWith("/")) {
             this.lastPattern = Pattern.compile(lastHit.substring(1,lastHit.length()-1));
         } else {
@@ -72,18 +72,18 @@ public class Rule implements IRule<CharSequence> {
         return this;
     }
 
-    public Rule then(Rule next) {
+    public SpamRule then(SpamRule next) {
         this.onMiss = next;
         next.root = this.root;
 
         return next;
     }
 
-    public Rule then(String regex, Action onHit) {
-        return then(new Rule(regex, onHit));
+    public SpamRule then(String regex, Action onHit) {
+        return then(new SpamRule(regex, onHit));
     }
 
-    public Rule build() {
+    public SpamRule build() {
         return this.root;
     }
 
@@ -150,8 +150,8 @@ public class Rule implements IRule<CharSequence> {
     }
 
     // TODO no chain in builder
-    public Rule onlyOnce() {
-        Rule limiter = new Rule(this.pattern,this.onHit.getOpposite())
+    public SpamRule onlyOnce() {
+        SpamRule limiter = new SpamRule(this.pattern,this.onHit.getOpposite())
                 .ifAfter(this.name);
         limiter.onMiss = this;
 
