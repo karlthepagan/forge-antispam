@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
  * the only memory provided by this engine. Users should utilize DFA techniques to achieve
  * complex features.
  */
-public class AntiSpamRuntime<T,N> {
+public class RuleKernel<T,N> {
 
     private final Function<T,N> eventNormalizer;
 
@@ -38,8 +38,8 @@ public class AntiSpamRuntime<T,N> {
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    public AntiSpamRuntime(Function<T,N> eventNormalizer,
-                           List<Rule<N>> rules) {
+    public RuleKernel(Function<T,N> eventNormalizer,
+                      List<Rule<N>> rules) {
         this.eventNormalizer = eventNormalizer;
         this.rules = rules;
     }

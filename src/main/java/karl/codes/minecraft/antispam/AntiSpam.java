@@ -4,7 +4,7 @@ import com.google.common.base.Function;
 import karl.codes.antispam.Rule;
 import karl.codes.minecraft.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
-import karl.codes.antispam.AntiSpamRuntime;
+import karl.codes.antispam.RuleKernel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiIngame;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AntiSpam {
     public static final String MODID = "antispam";
 
-    private AntiSpamRuntime<ClientChatReceivedEvent, CharSequence> runtime = new AntiSpamRuntime<>(
+    private RuleKernel<ClientChatReceivedEvent, CharSequence> runtime = new RuleKernel<>(
             new Function<ClientChatReceivedEvent, CharSequence>() {
                 @Nullable
                 @Override
