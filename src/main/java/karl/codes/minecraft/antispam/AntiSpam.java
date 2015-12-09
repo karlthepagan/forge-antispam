@@ -72,7 +72,7 @@ public class AntiSpam {
         String last = lastHitName;
         Object textKey = ChatEvents.textKey(event.message, last);
 
-        Rule<CharSequence> rule = runtime.chatEvent(textKey, event, last);
+        Rule<CharSequence> rule = runtime.apply(textKey, event, last);
 
         switch (rule.onHit()) {
             case DENY:

@@ -48,32 +48,40 @@ public class RuleKernel<T,N> {
         cachedHits.clear();
     }
 
-    public Rule<N> chatEvent(Object textKey, T event, String last) {
-        Rule<N> rule = applyCachedRule(textKey, event);
+    public Rule<N> apply(Object hashKey, T event, String contextName) {
+        Rule<N> rule = applyCached(hashKey, event);
         if(rule == null) {
-            N text = eventNormalizer.apply(event);
+            N normalized = eventNormalizer.apply(event);
 
-            rule = applyRules(event, last, textKey, text);
+            rule = applyNormalized(hashKey, event, normalized, contextName);
         } else {
-            textKey = null; // hooray!
+            hashKey = null; // hooray!
         }
 
-        if(textKey != null)
-            cachedHits.put(textKey, rule);
+        if(hashKey != null)
+            cachedHits.put(hashKey, rule);
 
         return rule;
     }
 
-    private Rule<N> applyCachedRule(Object textKey, T event) {
-        return cachedHits.get(textKey);
+    private Rule<N> applyCached(Object hashKey, T event) {
+        return cachedHits.get(hashKey);
     }
 
-    public Rule<N> applyRules(T event, String last, Object textKey, N text) {
+    /**
+     * Full rule logic
+     * @param hashKey hash key used for cached lookups
+     * @param event canonical event
+     * @param normalized normalized event
+     * @param contextName name of the logical context for this rule (last hit, current motivation, etc)
+     * @return matching rule
+     */
+    public Rule<N> applyNormalized(Object hashKey, T event, N normalized, String contextName) {
         outOfChain:
         for(Rule<N> r : rules) {
             inChain:
             while(r != null) {
-                if (r.test(text,last)) {
+                if (r.test(normalized,contextName)) {
                     switch (r.onHit()) {
                         case NEXT:
                             // rule branching
