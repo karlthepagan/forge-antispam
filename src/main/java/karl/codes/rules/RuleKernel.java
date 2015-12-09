@@ -64,8 +64,15 @@ public class RuleKernel<T,N> {
         return rule;
     }
 
+    /**
+     * Cached logic based on hashKey
+     * @param hashKey cache lookup key
+     * @param event canonical event
+     * @return last rule which resolved to this hashKey
+     */
     private Rule<N> applyCached(Object hashKey, T event) {
-        return cachedHits.get(hashKey);
+        // TODO contextName
+        return hashKey==null?null:cachedHits.get(hashKey);
     }
 
     /**
