@@ -42,6 +42,7 @@ public class AntiSpam {
                 @Nullable
                 @Override
                 public CharSequence apply(ClientChatReceivedEvent input) {
+                    // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
                     return ChatEvents.asCharSequence(input.message);
                 }
             }, DefaultRules.factionsDefaults());

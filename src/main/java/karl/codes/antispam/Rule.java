@@ -4,7 +4,13 @@ package karl.codes.antispam;
  * Created by karl on 12/8/2015.
  */
 public interface Rule<N> {
-    Rule OK = new Rule() {
+    class Pass implements Rule {
+        private final String name;
+
+        public Pass(String name) {
+            this.name = name;
+        }
+
         @Override
         public boolean test(Object input, String last) {
             return true;
@@ -22,9 +28,12 @@ public interface Rule<N> {
 
         @Override
         public String name() {
-            return "OK";
+            return name;
         }
     };
+
+    Rule OK = new Pass("OK");
+    Rule MISS = new Pass("MISS");
 
     boolean test(N input, String last);
     Action onHit();

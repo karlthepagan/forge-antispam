@@ -28,18 +28,18 @@ public class AntiSpamRuntime<T,N> {
     // TODO LRU
     private final ConcurrentMap<Object,Rule<N>> cachedHits = new ConcurrentHashMap<>();
 
-    // TODO - single cache?
-    private final Cache<T,Rule<N>> hits = CacheBuilder.newBuilder()
+    private final Cache<Rule<N>,T> hits = CacheBuilder.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    private final Cache<T,Rule<N>> misses = CacheBuilder.newBuilder()
+    private final Cache<Rule<N>,T> misses = CacheBuilder.newBuilder()
             .maximumSize(100)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    public AntiSpamRuntime(Function<T,N> eventNormalizer, List<Rule<N>> rules) {
+    public AntiSpamRuntime(Function<T,N> eventNormalizer,
+                           List<Rule<N>> rules) {
         this.eventNormalizer = eventNormalizer;
         this.rules = rules;
     }
@@ -51,7 +51,6 @@ public class AntiSpamRuntime<T,N> {
     public Rule<N> chatEvent(Object textKey, T event, String last) {
         Rule<N> rule = applyCachedRule(textKey, event);
         if(rule == null) {
-            // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
             N text = eventNormalizer.apply(event);
 
             rule = applyRules(event, last, textKey, text);
@@ -83,6 +82,7 @@ public class AntiSpamRuntime<T,N> {
                         case PASS:
                             continue outOfChain;
                         default:
+                            hits.put(r,event);
                             return r;
                     }
                 } else if(r.onHit() == Action.NEXT){
@@ -99,7 +99,8 @@ public class AntiSpamRuntime<T,N> {
         }
 
         // all missed!
-        return (Rule<N>) Rule.OK;
+        misses.put(Rule.MISS, event);
+        return (Rule<N>) Rule.MISS;
     }
 
     public Collection<Rule<N>> getCache() {
