@@ -3,9 +3,6 @@ package karl.codes.antispam;
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import karl.codes.minecraft.antispam.rules.Action;
-import karl.codes.minecraft.antispam.rules.DefaultRules;
-import karl.codes.minecraft.antispam.rules.Rule;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,39 +19,40 @@ import java.util.concurrent.TimeUnit;
  * the only memory provided by this engine. Users should utilize DFA techniques to achieve
  * complex features.
  */
-public class AntiSpamRuntime<T> {
+public class AntiSpamRuntime<T,N> {
 
-    private final Function<T,CharSequence> asCharacters;
+    private final Function<T,N> eventNormalizer;
 
-    private final List<Rule> rules = DefaultRules.factionsDefaults();
+    private final List<IRule<N>> rules;
 
     // TODO LRU
-    private final ConcurrentMap<Object,Rule> cachedHits = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Object,IRule<N>> cachedHits = new ConcurrentHashMap<>();
 
     // TODO - single cache?
-    private final Cache<T,Rule> hits = CacheBuilder.newBuilder()
+    private final Cache<T,IRule<N>> hits = CacheBuilder.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    private final Cache<T,Rule> misses = CacheBuilder.newBuilder()
+    private final Cache<T,IRule<N>> misses = CacheBuilder.newBuilder()
             .maximumSize(100)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    public AntiSpamRuntime(Function<T,CharSequence> asCharacters) {
-        this.asCharacters = asCharacters;
+    public AntiSpamRuntime(Function<T,N> eventNormalizer, List<IRule<N>> rules) {
+        this.eventNormalizer = eventNormalizer;
+        this.rules = rules;
     }
 
     public void clear() {
         cachedHits.clear();
     }
 
-    public Rule chatEvent(Object textKey, T event, String last) {
-        Rule rule = applyCachedRule(textKey, event);
+    public IRule<N> chatEvent(Object textKey, T event, String last) {
+        IRule<N> rule = applyCachedRule(textKey, event);
         if(rule == null) {
             // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
-            CharSequence text = asCharacters.apply(event);
+            N text = eventNormalizer.apply(event);
 
             rule = applyRules(event, last, textKey, text);
         } else {
@@ -67,44 +65,44 @@ public class AntiSpamRuntime<T> {
         return rule;
     }
 
-    private Rule applyCachedRule(Object textKey, T event) {
+    private IRule<N> applyCachedRule(Object textKey, T event) {
         return cachedHits.get(textKey);
     }
 
-    public Rule applyRules(T event, String last, Object textKey, CharSequence text) {
+    public IRule<N> applyRules(T event, String last, Object textKey, N text) {
         outOfChain:
-        for(Rule r : rules) {
+        for(IRule<N> r : rules) {
             inChain:
             while(r != null) {
                 if (r.test(text,last)) {
-                    switch (r.onHit) {
+                    switch (r.onHit()) {
                         case NEXT:
                             // rule branching
-                            r = r.onMiss;
+                            r = r.onMiss();
                             continue inChain;
                         case PASS:
                             continue outOfChain;
                         default:
                             return r;
                     }
-                } else if(r.onHit == Action.NEXT){
+                } else if(r.onHit() == Action.NEXT){
                     continue outOfChain;
-                } else if(r.onHit == Action.PASS) {
+                } else if(r.onHit() == Action.PASS) {
                     // rule branching
-                    r = r.onMiss;
+                    r = r.onMiss();
                     continue inChain;
                 }
 
                 // miss
-                r = r.onMiss;
+                r = r.onMiss();
             }
         }
 
         // all missed!
-        return Rule.OK;
+        return (IRule<N>)IRule.OK;
     }
 
-    public Collection<Rule> getCache() {
+    public Collection<IRule<N>> getCache() {
         return  cachedHits.values();
     }
 }

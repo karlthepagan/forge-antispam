@@ -1,6 +1,8 @@
 package karl.codes.minecraft.antispam.rules;
 
 import com.google.common.collect.ImmutableList;
+import karl.codes.antispam.Action;
+import karl.codes.antispam.IRule;
 
 import java.util.List;
 
@@ -8,8 +10,8 @@ import java.util.List;
  * Created by karl on 11/1/15.
  */
 public class DefaultRules {
-    public static List<Rule> factionsDefaults() {
-        return ImmutableList.<Rule>builder()
+    public static List<IRule<CharSequence>> factionsDefaults() {
+        return ImmutableList.<IRule<CharSequence>>builder()
                 // factions nametag chat
                 .add(new Rule("^<", Action.OK).named("chat"))
                 // factions

@@ -1,7 +1,9 @@
 package karl.codes.minecraft.antispam;
 
 import com.google.common.base.Function;
+import karl.codes.antispam.IRule;
 import karl.codes.minecraft.ChatEvents;
+import karl.codes.minecraft.antispam.rules.DefaultRules;
 import karl.codes.minecraft.antispam.rules.Rule;
 import karl.codes.antispam.AntiSpamRuntime;
 import net.minecraft.client.Minecraft;
@@ -36,14 +38,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AntiSpam {
     public static final String MODID = "antispam";
 
-    private AntiSpamRuntime<ClientChatReceivedEvent> runtime = new AntiSpamRuntime<>(
+    private AntiSpamRuntime<ClientChatReceivedEvent, CharSequence> runtime = new AntiSpamRuntime<>(
             new Function<ClientChatReceivedEvent, CharSequence>() {
                 @Nullable
                 @Override
                 public CharSequence apply(ClientChatReceivedEvent input) {
                     return ChatEvents.asCharSequence(input.message);
                 }
-            });
+            }, DefaultRules.factionsDefaults());
 
     public static AtomicInteger IDS = new AtomicInteger(1);
 
@@ -70,9 +72,9 @@ public class AntiSpam {
         String last = lastHitName;
         Object textKey = ChatEvents.textKey(event.message, last);
 
-        Rule rule = runtime.chatEvent(textKey, event, last);
+        IRule<CharSequence> rule = runtime.chatEvent(textKey, event, last);
 
-        switch (rule.onHit) {
+        switch (rule.onHit()) {
             case DENY:
                 if(getPassive()) {
                     IChatComponent old = event.message;
@@ -85,7 +87,7 @@ public class AntiSpam {
 
             default:
                 // do nothing
-                lastHitName = rule.name;
+                lastHitName = rule.name();
         }
     }
 
@@ -162,7 +164,7 @@ public class AntiSpam {
                 case "cache":
                     switch(arg1) {
                         case "":
-                            for (Rule r : runtime.getCache()) {
+                            for (IRule<CharSequence> r : runtime.getCache()) {
                                 iCommandSender.addChatMessage(new ChatComponentText(r.toString()));
                             }
                             return;

@@ -1,4 +1,4 @@
-package karl.codes.minecraft.antispam.rules;
+package karl.codes.antispam;
 
 /**
 * Created by karl on 11/1/15.

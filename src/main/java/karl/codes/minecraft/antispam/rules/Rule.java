@@ -1,5 +1,7 @@
 package karl.codes.minecraft.antispam.rules;
 
+import karl.codes.antispam.Action;
+import karl.codes.antispam.IRule;
 import karl.codes.minecraft.antispam.AntiSpam;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,13 +12,13 @@ import java.util.regex.Pattern;
 /**
 * Created by karl on 11/1/15.
 */
-public class Rule {
+public class Rule implements IRule<CharSequence> {
     public static final Rule OK = new Rule("", Action.OK);
 
     private Pattern pattern;
-    public String name = null;
-    public Action onHit = Action.DENY;
-    public Rule onMiss; // TODO list
+    private String name = null;
+    private Action onHit = Action.DENY;
+    private Rule onMiss; // TODO list
     private Rule root = this; // used for builder notation :/
     /**
      * name required for last hit
@@ -101,6 +103,21 @@ public class Rule {
         makeString(m,last);
 
         return true;
+    }
+
+    @Override
+    public Action onHit() {
+        return onHit;
+    }
+
+    @Override
+    public IRule<CharSequence> onMiss() {
+        return onMiss;
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     private String makeString(Matcher m, String last) {
