@@ -1,7 +1,7 @@
 package karl.codes.minecraft.antispam;
 
 import com.google.common.base.Function;
-import karl.codes.antispam.IRule;
+import karl.codes.antispam.Rule;
 import karl.codes.minecraft.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
 import karl.codes.antispam.AntiSpamRuntime;
@@ -71,7 +71,7 @@ public class AntiSpam {
         String last = lastHitName;
         Object textKey = ChatEvents.textKey(event.message, last);
 
-        IRule<CharSequence> rule = runtime.chatEvent(textKey, event, last);
+        Rule<CharSequence> rule = runtime.chatEvent(textKey, event, last);
 
         switch (rule.onHit()) {
             case DENY:
@@ -163,7 +163,7 @@ public class AntiSpam {
                 case "cache":
                     switch(arg1) {
                         case "":
-                            for (IRule<CharSequence> r : runtime.getCache()) {
+                            for (Rule<CharSequence> r : runtime.getCache()) {
                                 iCommandSender.addChatMessage(new ChatComponentText(r.toString()));
                             }
                             return;

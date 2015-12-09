@@ -1,7 +1,7 @@
 package karl.codes.minecraft.antispam.rules;
 
 import karl.codes.antispam.Action;
-import karl.codes.antispam.IRule;
+import karl.codes.antispam.Rule;
 import karl.codes.minecraft.antispam.AntiSpam;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 /**
 * Created by karl on 11/1/15.
 */
-public class SpamRule implements IRule<CharSequence> {
+public class SpamRule implements Rule<CharSequence> {
     public static final SpamRule OK = new SpamRule("", Action.OK);
 
     private Pattern pattern;
@@ -111,7 +111,7 @@ public class SpamRule implements IRule<CharSequence> {
     }
 
     @Override
-    public IRule<CharSequence> onMiss() {
+    public Rule<CharSequence> onMiss() {
         return onMiss;
     }
 

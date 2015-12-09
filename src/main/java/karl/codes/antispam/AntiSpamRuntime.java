@@ -23,23 +23,23 @@ public class AntiSpamRuntime<T,N> {
 
     private final Function<T,N> eventNormalizer;
 
-    private final List<IRule<N>> rules;
+    private final List<Rule<N>> rules;
 
     // TODO LRU
-    private final ConcurrentMap<Object,IRule<N>> cachedHits = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Object,Rule<N>> cachedHits = new ConcurrentHashMap<>();
 
     // TODO - single cache?
-    private final Cache<T,IRule<N>> hits = CacheBuilder.newBuilder()
+    private final Cache<T,Rule<N>> hits = CacheBuilder.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    private final Cache<T,IRule<N>> misses = CacheBuilder.newBuilder()
+    private final Cache<T,Rule<N>> misses = CacheBuilder.newBuilder()
             .maximumSize(100)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
-    public AntiSpamRuntime(Function<T,N> eventNormalizer, List<IRule<N>> rules) {
+    public AntiSpamRuntime(Function<T,N> eventNormalizer, List<Rule<N>> rules) {
         this.eventNormalizer = eventNormalizer;
         this.rules = rules;
     }
@@ -48,8 +48,8 @@ public class AntiSpamRuntime<T,N> {
         cachedHits.clear();
     }
 
-    public IRule<N> chatEvent(Object textKey, T event, String last) {
-        IRule<N> rule = applyCachedRule(textKey, event);
+    public Rule<N> chatEvent(Object textKey, T event, String last) {
+        Rule<N> rule = applyCachedRule(textKey, event);
         if(rule == null) {
             // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
             N text = eventNormalizer.apply(event);
@@ -65,13 +65,13 @@ public class AntiSpamRuntime<T,N> {
         return rule;
     }
 
-    private IRule<N> applyCachedRule(Object textKey, T event) {
+    private Rule<N> applyCachedRule(Object textKey, T event) {
         return cachedHits.get(textKey);
     }
 
-    public IRule<N> applyRules(T event, String last, Object textKey, N text) {
+    public Rule<N> applyRules(T event, String last, Object textKey, N text) {
         outOfChain:
-        for(IRule<N> r : rules) {
+        for(Rule<N> r : rules) {
             inChain:
             while(r != null) {
                 if (r.test(text,last)) {
@@ -99,10 +99,10 @@ public class AntiSpamRuntime<T,N> {
         }
 
         // all missed!
-        return (IRule<N>)IRule.OK;
+        return (Rule<N>) Rule.OK;
     }
 
-    public Collection<IRule<N>> getCache() {
+    public Collection<Rule<N>> getCache() {
         return  cachedHits.values();
     }
 }

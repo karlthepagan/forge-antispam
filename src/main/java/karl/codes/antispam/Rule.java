@@ -3,8 +3,8 @@ package karl.codes.antispam;
 /**
  * Created by karl on 12/8/2015.
  */
-public interface IRule<N> {
-    IRule OK = new IRule() {
+public interface Rule<N> {
+    Rule OK = new Rule() {
         @Override
         public boolean test(Object input, String last) {
             return true;
@@ -16,7 +16,7 @@ public interface IRule<N> {
         }
 
         @Override
-        public IRule onMiss() {
+        public Rule onMiss() {
             return null;
         }
 
@@ -28,6 +28,6 @@ public interface IRule<N> {
 
     boolean test(N input, String last);
     Action onHit();
-    IRule<N> onMiss();
+    Rule<N> onMiss();
     String name();
 }
