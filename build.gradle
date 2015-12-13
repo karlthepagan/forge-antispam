@@ -23,7 +23,7 @@ apply plugin: 'forge'
 //    id 'net.minecraftforge.gradle.forge' version '2.0.0'
 //}
 
-version = '1.8-0.1-SNAPSHOT'
+version = '1.8-0.2-SNAPSHOT'
 group= 'karl.codes-minecraft'
 archivesBaseName = 'antispam'
 
@@ -36,6 +36,8 @@ minecraft {
 }
 
 dependencies {
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.6.4'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.6.4'
     testCompile 'junit:junit:4.12'
 }
 

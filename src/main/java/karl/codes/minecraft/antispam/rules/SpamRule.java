@@ -36,7 +36,7 @@ public class SpamRule implements Rule<CharSequence> {
         this(Pattern.compile(regex),onHit);
     }
 
-    protected SpamRule(Pattern regex, Action onHit) {
+    public SpamRule(Pattern regex, Action onHit) {
         this.pattern = regex;
         this.onHit = onHit;
     }

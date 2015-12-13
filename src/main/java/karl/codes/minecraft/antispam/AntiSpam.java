@@ -1,6 +1,9 @@
 package karl.codes.minecraft.antispam;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import karl.codes.minecraft.antispam.config.RulesConfig;
+import karl.codes.minecraft.antispam.rules.SpamRule;
 import karl.codes.rules.Rule;
 import karl.codes.minecraft.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
@@ -24,6 +27,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,15 +42,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AntiSpam {
     public static final String MODID = "antispam";
 
-    private RuleKernel<ClientChatReceivedEvent, CharSequence> runtime = new RuleKernel<>(
-            new Function<ClientChatReceivedEvent, CharSequence>() {
-                @Nullable
-                @Override
-                public CharSequence apply(ClientChatReceivedEvent input) {
-                    // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
-                    return ChatEvents.asCharSequence(input.message);
-                }
-            }, DefaultRules.factionsDefaults());
+    // TODO log4j2 logging :P
+
+    private RuleKernel<ClientChatReceivedEvent, CharSequence> runtime;
 
     public static AtomicInteger IDS = new AtomicInteger(1);
 
@@ -54,6 +53,37 @@ public class AntiSpam {
     private String lastHitName = null;
 
     private GuiIngame gui;
+
+    public AntiSpam() {
+        runtime = new RuleKernel<>(
+                new Function<ClientChatReceivedEvent, CharSequence>() {
+                    @Nullable
+                    @Override
+                    public CharSequence apply(ClientChatReceivedEvent input) {
+                        // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
+                        return ChatEvents.asCharSequence(input.message);
+                    }
+                }, loadRules());
+    }
+
+    public ImmutableList<SpamRule> loadRules() {
+        try {
+            RulesConfig config = new RulesConfig();
+            URL rulesResource = AntiSpam.class.getResource("/antispam.json");
+            if(rulesResource != null)
+                return config.read(config.getJson().getFactory().createParser(rulesResource));
+
+            rulesResource = AntiSpam.class.getResource("/antispam.yml");
+            if(rulesResource != null)
+                return config.readYaml(config.getYaml().getFactory().createParser(rulesResource));
+
+        } catch(IOException e) {
+            // TODO better logging
+            e.printStackTrace();
+        }
+
+        return DefaultRules.factionsDefaults();
+    }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {

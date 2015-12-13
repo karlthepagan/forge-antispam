@@ -10,8 +10,8 @@ import java.util.List;
  * Created by karl on 11/1/15.
  */
 public class DefaultRules {
-    public static List<Rule<CharSequence>> factionsDefaults() {
-        return ImmutableList.<Rule<CharSequence>>builder()
+    public static ImmutableList<SpamRule> factionsDefaults() {
+        return ImmutableList.<SpamRule>builder()
                 // factions nametag chat
                 .add(new SpamRule("^<", Action.OK).named("chat"))
                 // factions

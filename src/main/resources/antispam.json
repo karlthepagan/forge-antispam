@@ -1,0 +1,46 @@
+[
+  {
+    "name": "chat",
+    "pattern": "^<",
+    "action": "OK"
+  },
+  {
+    "name": "factions",
+    "pattern": "____$.$[.*$]$.____",
+    "action": "OK"
+  },
+  {
+    "pattern": "^$[ClearLag$]$s",
+    "action": "OK"
+  },
+  {
+    "name": "mcmmo",
+    "pattern": "^$[mcMMO$]",
+    "action": "OK",
+    "onlyOnce": true
+  },
+  {
+    "pattern": "^(?i).links.$s"
+  },
+  {
+    "pattern": "(?:[-+~=$*\\/]$s?){3}",
+    "notAfter": "factions"
+  },
+  {
+    "pattern": "(?i)vote",
+    "next": [
+      {
+        "pattern": "(?i)voted? .* us"
+      },
+      {
+        "pattern": "(?i)you .* votes?"
+      },
+      {
+        "pattern": "(?i)has voted @"
+      },
+      {
+        "pattern": "^$[Vote4Cash$]"
+      }
+    ]
+  }
+]

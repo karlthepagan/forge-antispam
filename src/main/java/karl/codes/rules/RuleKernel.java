@@ -23,7 +23,7 @@ public class RuleKernel<T,N> {
 
     private final Function<T,N> eventNormalizer;
 
-    private final List<Rule<N>> rules;
+    private final List<? extends Rule<N>> rules;
 
     // TODO LRU
     private final ConcurrentMap<Object,Rule<N>> cachedHits = new ConcurrentHashMap<>();
@@ -39,7 +39,7 @@ public class RuleKernel<T,N> {
             .build();
 
     public RuleKernel(Function<T,N> eventNormalizer,
-                      List<Rule<N>> rules) {
+                      List<? extends Rule<N>> rules) {
         this.eventNormalizer = eventNormalizer;
         this.rules = rules;
     }
