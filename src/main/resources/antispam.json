@@ -1,29 +1,41 @@
 [
   {
-    "name": "chat",
-    "pattern": "^<",
-    "action": "OK"
+    "pattern": "\\bconnected with an iPhone using MineChat$"
   },
   {
-    "name": "factions",
-    "pattern": "____$.$[.*$]$.____",
-    "action": "OK"
-  },
-  {
-    "pattern": "^$[ClearLag$]$s",
-    "action": "OK"
-  },
-  {
-    "name": "mcmmo",
-    "pattern": "^$[mcMMO$]",
+    "pattern": "^(\\[[^<]+\\])?<",
     "action": "OK",
+    "name": "chat"
+  },
+  {
+    "pattern": "____\\.\\[.*\\]\\.____",
+    "action": "OK",
+    "name": "factions"
+  },
+  {
+    "pattern": "^\\[ClearLag\\]\\s",
+    "action": "OK"
+  },
+  {
+    "pattern": "^\\[mcMMO\\]",
+    "action": "OK",
+    "name": "mcmmo",
     "onlyOnce": true
   },
   {
-    "pattern": "^(?i).links.$s"
+    "pattern": "^Welcome to"
   },
   {
-    "pattern": "(?:[-+~=$*\\/]$s?){3}",
+    "pattern": "^Type\\s"
+  },
+  {
+    "pattern": "^Don't forget to check out"
+  },
+  {
+    "pattern": "^(?i).links.\\s"
+  },
+  {
+    "pattern": "(?:[-+~=\\*\\/]\\s?){3}",
     "notAfter": "factions"
   },
   {
@@ -39,7 +51,7 @@
         "pattern": "(?i)has voted @"
       },
       {
-        "pattern": "^$[Vote4Cash$]"
+        "pattern": "^\\[Vote4Cash\\]"
       }
     ]
   }

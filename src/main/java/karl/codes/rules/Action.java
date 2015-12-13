@@ -7,7 +7,8 @@ public enum Action {
     OK,
     DENY,
     NEXT,
-    PASS;
+    PASS,
+    APPLY; // apply function
 
     public Action getOpposite() {
         switch (this) {

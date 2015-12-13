@@ -1,5 +1,6 @@
 ---
-- pattern: /^</
+- pattern: /\bconnected with an iPhone using MineChat$/
+- pattern: /^(\[[^<]+\])?</
   action: "OK"
   name: "chat"
 - pattern: /____\.\[.*\]\.____/
@@ -11,11 +12,21 @@
   action: "OK"
   name: "mcmmo"
   onlyOnce: true
+- pattern: '^\s*\[[^\]+]'
+  next:
+  - pattern: /TeamSpeak/
+  - pattern: /Our IP is/
+  - pattern: '/\w+'
+  - pattern: /(?i)rank/
+  - pattern: /claim/
+- pattern: /is now a level/
+- pattern: /^Welcome to/
+- pattern: /^Type\s/
+- pattern: /^Don't forget to check out/
 - pattern: /^(?i).links.\s/
 - pattern: '(?:[-+~=\*\/]\s?){3}'
   notAfter: "factions"
 - pattern: /(?i)vote/
-  action: "NEXT"
   next:
   - pattern: /(?i)voted? .* us/
   - pattern: /(?i)you .* votes?/

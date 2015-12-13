@@ -16,21 +16,21 @@ import java.util.regex.Pattern;
 /**
  * Model for spam rules using the JSON/YAML style.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class SpamRuleNode {
 
     @JsonProperty
-    @JsonDeserialize(using= PatternStrategyDeserializer.class)
-    private Pattern pattern;
+    @JsonDeserialize(using = PatternStrategyDeserializer.class)
+    private Pattern pattern = null;
     @JsonProperty
     private Action action = Action.DENY;
     @JsonProperty
-    private String name;
+    private String name = null;
     @JsonProperty
-    private boolean onlyOnce;
+    private boolean onlyOnce = false;
     @JsonProperty
-    private String notAfter;
-    private List<SpamRuleNode> next;
+    private String notAfter = null;
+    private List<SpamRuleNode> next = null;
 
     @JsonSetter
     public void setNext(List<SpamRuleNode> next) {

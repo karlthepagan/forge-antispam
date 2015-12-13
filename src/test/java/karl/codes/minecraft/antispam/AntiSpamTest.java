@@ -2,12 +2,16 @@ package karl.codes.minecraft.antispam;
 
 import karl.codes.minecraft.ChatEvents;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +22,16 @@ public class AntiSpamTest {
     @Before
     public void setUp() throws Exception {
         target = new AntiSpam();
+        // TODO need mock events?
+        // TODO look at fml.common.Loader - could we have a mock context? e.g. https://docs.spring.io/spring/docs/current/spring-framework-reference/html/integration-testing.html
+        target.preInit(new FMLPreInitializationEvent(null,null) {
+            public Logger getModLog() {
+                return LogManager.getLogger("antispam");
+            }
+            public File getSuggestedConfigurationFile() {
+                return new File("config/antispam.cfg");
+            }
+        });
         target.setPassive(false);
     }
 

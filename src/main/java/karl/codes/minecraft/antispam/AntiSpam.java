@@ -1,6 +1,6 @@
 package karl.codes.minecraft.antispam;
 
-import com.google.common.base.Function;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.google.common.collect.ImmutableList;
 import karl.codes.minecraft.antispam.config.RulesConfig;
 import karl.codes.minecraft.antispam.rules.SpamRule;
@@ -22,14 +22,16 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
+import java.io.File;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod(
@@ -42,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AntiSpam {
     public static final String MODID = "antispam";
 
-    // TODO log4j2 logging :P
+    private Logger log;
 
     private RuleKernel<ClientChatReceivedEvent, CharSequence> runtime;
 
@@ -55,34 +57,41 @@ public class AntiSpam {
     private GuiIngame gui;
 
     public AntiSpam() {
-        runtime = new RuleKernel<>(
-                new Function<ClientChatReceivedEvent, CharSequence>() {
-                    @Nullable
-                    @Override
-                    public CharSequence apply(ClientChatReceivedEvent input) {
-                        // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
-                        return ChatEvents.asCharSequence(input.message);
-                    }
-                }, loadRules());
     }
 
-    public ImmutableList<SpamRule> loadRules() {
-        try {
-            RulesConfig config = new RulesConfig();
-            URL rulesResource = AntiSpam.class.getResource("/antispam.json");
-            if(rulesResource != null)
-                return config.read(config.getJson().getFactory().createParser(rulesResource));
+    public ImmutableList<SpamRule> loadRules(File suggestedConfig) {
+        List<URL> candidates = RulesConfig.ruleLocations(suggestedConfig, AntiSpam.class);
 
-            rulesResource = AntiSpam.class.getResource("/antispam.yml");
-            if(rulesResource != null)
-                return config.readYaml(config.getYaml().getFactory().createParser(rulesResource));
+        RulesConfig config = new RulesConfig();
 
-        } catch(IOException e) {
-            // TODO better logging
-            e.printStackTrace();
+        ImmutableList<SpamRule> rules = DefaultRules.factionsDefaults();
+        URL resLoaded = null;
+        for(URL res : candidates) {
+            try {
+                ObjectReader reader = config.createReader(res);
+                rules = config.read(res,reader);
+                resLoaded = res;
+                break;
+            } catch(Exception e) {
+                log.error("Failed to parse rules uri={}",res,e);
+            }
         }
 
-        return DefaultRules.factionsDefaults();
+        if(resLoaded != null) {
+            log.info("loaded rules uri={}",resLoaded);
+        }
+
+        return rules;
+    }
+
+    @Mod.EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+        log = event.getModLog();
+
+        runtime = new RuleKernel<>(
+                ChatEvents.CLIENT_CHAT_AS_CHARSEQUENCE,
+                loadRules(event.getSuggestedConfigurationFile())
+        );
     }
 
     @Mod.EventHandler

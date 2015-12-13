@@ -7,7 +7,7 @@ import karl.codes.rules.Rule;
 import java.util.List;
 
 /**
- * Created by karl on 11/1/15.
+ * Warning: thes default rules are not up-to-date, see antispam.yml
  */
 public class DefaultRules {
     public static ImmutableList<SpamRule> factionsDefaults() {

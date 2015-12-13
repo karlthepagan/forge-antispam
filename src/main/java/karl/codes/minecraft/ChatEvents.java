@@ -8,6 +8,7 @@ import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import karl.codes.java.ListCharSequence;
 import net.minecraft.util.IChatComponent;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 
 import javax.annotation.Nullable;
 import java.nio.charset.Charset;
@@ -21,6 +22,15 @@ import java.util.Objects;
  */
 public class ChatEvents {
     public static final HashFunction STRING_HASH = Hashing.goodFastHash(32);
+
+    public static final Function<ClientChatReceivedEvent, CharSequence> CLIENT_CHAT_AS_CHARSEQUENCE = new Function<ClientChatReceivedEvent, CharSequence>() {
+        @Nullable
+        @Override
+        public CharSequence apply(ClientChatReceivedEvent input) {
+            // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
+            return ChatEvents.asCharSequence(input.message);
+        }
+    };
 
     private static Function<IChatComponent, CharSequence> TEXT_REDUCE_NOBAKE = new Function<IChatComponent, CharSequence>() {
         @Nullable

@@ -1,5 +1,6 @@
 package karl.codes.minecraft.antispam.config;
 
+import com.fasterxml.jackson.core.JsonParser;
 import karl.codes.minecraft.antispam.AntiSpam;
 import karl.codes.minecraft.antispam.config.model.SpamRuleNode;
 import org.junit.After;
@@ -29,12 +30,12 @@ public class RulesConfigTest {
     @Test
     public void testParseJsonToYaml() throws Exception {
         URL rulesResource = AntiSpam.class.getResource("/antispam.json");
-        List<SpamRuleNode> rules = target.readNodes(
-                target.getJson().getFactory().createParser(rulesResource),
-                target.getJson());
+        JsonParser parser = target.getJson().getFactory().createParser(rulesResource);
+
+        List<SpamRuleNode> rules = target.readNodes(parser, target.getJson());
 
         StringWriter wr = new StringWriter();
-        target.write(rules,target.getYaml().getFactory().createGenerator(wr));
+        target.write(rules,target.getYaml().getFactory().createGenerator(wr),target.yamlOut);
         String value = wr.toString();
         rules = target.readNodes(target.getYaml().getFactory().createParser(value),target.getYaml());
     }

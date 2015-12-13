@@ -1,38 +1,45 @@
+// For those who want the bleeding edge
+// 2.0-SNAP needed for OSX - https://github.com/MinecraftForge/MinecraftForge/issues/2183
 buildscript {
     repositories {
-        mavenCentral()
+        jcenter()
         maven {
-            name = 'forge'
-            url = 'http://files.minecraftforge.net/maven'
-        }
-        maven {
-            name = 'sonatype'
-            url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+            name = "forge"
+            url = "http://files.minecraftforge.net/maven"
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.0-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
     }
 }
 
-// 1.2-SNAPSHOT
-apply plugin: 'forge'
+plugins {
+    id 'com.github.johnrengelman.shadow' version '1.2.2'
+}
 
-// 2.0?
-//plugins {
-//    id 'net.minecraftforge.gradle.forge' version '2.0.0'
-//}
 
-version = '1.8-0.2-SNAPSHOT'
+apply plugin: 'net.minecraftforge.gradle.forge'
+/*
+// for people who want stable
+plugins {
+    id "net.minecraftforge.gradle.forge" version "2.0.2"
+}*/
+
+version = '1.8.8-0.2-SNAPSHOT'
 group= 'karl.codes-minecraft'
 archivesBaseName = 'antispam'
 
 minecraft {
 //    version = '10.13.4.1517-1.7.10'
-    version = '1.8-11.14.3.1450' // recommended
+//    version = '1.8-11.14.3.1450' // recommended FG 1.2
 //    version = '1.8-11.14.3.1504' // inventory-tweaks FG2
-//    version = '1.8-11.14.3.1521' // latest FG2
-//    mappings = 'snapshot_20150823'
+    version = '1.8-11.14.4.1563'
+
+    runDir = 'run'
+
+    // default -- mappings = "snapshot_20141130"
+    mappings = "snapshot_20151128"
 }
 
 dependencies {
@@ -43,6 +50,25 @@ dependencies {
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
+
+jar {
+    classifier = 'nodeps'
+}
+
+shadowJar {
+    classifier = ''
+    // TODO relocate
+}
+
+reobf {
+    shadowJar { useSrgSrg() }
+}
+
+tasks.build.dependsOn reobfShadowJar
+
+artifacts {
+    archives shadowJar
+}
 
 compileJava {
     options.debug = true
@@ -55,11 +81,11 @@ processResources {
 
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
-                
+
         // replace version and mcversion
         expand version: project.version, mcversion: project.minecraft.version
     }
-    
+
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
