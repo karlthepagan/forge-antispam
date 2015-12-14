@@ -1,45 +1,118 @@
 [
   {
-    "pattern": "\\bconnected with an iPhone using MineChat$"
+    "pattern": "$bconnected with an iPhone using MineChat$"
   },
   {
-    "pattern": "^(\\[[^<]+\\])?<",
+    "pattern": "^($[[^$]]+$])?<",
     "action": "OK",
     "name": "chat"
   },
   {
-    "pattern": "____\\.\\[.*\\]\\.____",
+    "pattern": "^($[[^$]]+$])?$s*$w+:",
+    "action": "OK",
+    "name": "chat"
+  },
+  {
+    "pattern": "____$.$[.*$]$.____",
     "action": "OK",
     "name": "factions"
   },
   {
-    "pattern": "^\\[ClearLag\\]\\s",
+    "pattern": "^$[ClearLag$]$s",
     "action": "OK"
   },
   {
-    "pattern": "^\\[mcMMO\\]",
+    "pattern": "^$[mcMMO$]",
     "action": "OK",
     "name": "mcmmo",
     "onlyOnce": true
   },
   {
-    "pattern": "^Welcome to"
+    "pattern": "^$s*$[[^$]+]",
+    "action": "NEXT",
+    "name": "brackets",
+    "next": [
+      {
+        "pattern": "TeamSpeak"
+      },
+      {
+        "pattern": "Our IP is"
+      },
+      {
+        "pattern": "/$w+"
+      },
+      {
+        "pattern": "(?i)rank"
+      },
+      {
+        "pattern": "(?i)donate"
+      },
+      {
+        "pattern": "claim"
+      }
+    ]
   },
   {
-    "pattern": "^Type\\s"
+    "pattern": "^$s*[^$[<]",
+    "action": "NEXT",
+    "name": "not brackets",
+    "next": [
+      {
+        "pattern": "^$(From Santa"
+      },
+      {
+        "pattern": "(?i)^$s*store"
+      },
+      {
+        "pattern": "(?i)^$s*vote"
+      },
+      {
+        "pattern": "(?i)^$s*visit"
+      },
+      {
+        "pattern": "^Hello,$s"
+      },
+      {
+        "pattern": "^You can pick 3 jobs"
+      },
+      {
+        "pattern": "^Check the SlimeFun Guide"
+      },
+      {
+        "pattern": "^Your stuff is UN-Griefable"
+      },
+      {
+        "pattern": "^Type$s"
+      },
+      {
+        "pattern": "^Don't forget to check out"
+      },
+      {
+        "pattern": "(?i)^[$s$S-[$w]]*welcome ($S+$s+)*to"
+      },
+      {
+        "pattern": "Got .* on /$w+"
+      },
+      {
+        "pattern": "is now a level"
+      }
+    ]
   },
   {
-    "pattern": "^Don't forget to check out"
+    "pattern": "^(?i).links.$s"
   },
   {
-    "pattern": "^(?i).links.\\s"
-  },
-  {
-    "pattern": "(?:[-+~=\\*\\/]\\s?){3}",
+    "pattern": "(?:[-+~=$*/]$s?){3}",
+    "name": "hbar",
     "notAfter": "factions"
   },
   {
+    "pattern": "^$s*$",
+    "name": "whitespace"
+  },
+  {
     "pattern": "(?i)vote",
+    "action": "NEXT",
     "next": [
       {
         "pattern": "(?i)voted? .* us"
@@ -51,7 +124,7 @@
         "pattern": "(?i)has voted @"
       },
       {
-        "pattern": "^\\[Vote4Cash\\]"
+        "pattern": "^$[Vote4Cash$]"
       }
     ]
   }

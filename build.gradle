@@ -27,23 +27,26 @@ plugins {
     id "net.minecraftforge.gradle.forge" version "2.0.2"
 }*/
 
-def mcversion = '1.8'
 def modversion = '0.2-SNAPSHOT'
+def mcversion = '1.8'
+def forgeversion = ['1.8.8':    '11.15.0.1628',
+                    '1.8':      '11.14.4.1563',
+                    '1.7.10':   '10.13.4.1558-1.7.10'] // FG2.0?
+def forgeMappings = ['1.8.8':   'snapshot_20151128',
+                     '1.8':     'snapshot_20151128']
 
 version = "$mcversion-$modversion"
 group= 'karl.codes-minecraft'
 archivesBaseName = 'antispam'
+def shadowPackage = "$archivesBaseName.$modversion"
 
 minecraft {
-//    version = '10.13.4.1517-1.7.10'
-//    version = '1.8-11.14.3.1450' // recommended FG 1.2
-//    version = '1.8-11.14.3.1504' // inventory-tweaks FG2
-    version = "$mcversion-11.14.4.1563"
+    version = "$mcversion-${forgeversion[mcversion]}"
 
     runDir = 'run'
 
     // default -- mappings = "snapshot_20141130"
-    mappings = "snapshot_20151128"
+    mappings = forgeMappings[mcversion]
 }
 
 dependencies {
@@ -60,12 +63,10 @@ jar {
 }
 
 shadowJar {
-    def dst = "${project.archivesBaseName}.$modversion"
-
     classifier = 'all'
 
-    relocate 'com.fasterxml', dst
-    relocate 'org.yaml', dst
+    relocate 'com.fasterxml', shadowPackage
+    relocate 'org.yaml', shadowPackage
 }
 
 reobf {
@@ -82,10 +83,10 @@ task proguard(type: proguard.gradle.ProGuardTask) {
     injars tasks.shadowJar.archivePath
     outjars tasks.shadowJar.archivePath.parent + '/' + tasks.jar.archiveName.replace('-nodeps','-proguard')
 
-    keep(annotation: 'net.minecraftforge.fml.common.Mod', includedescriptorclasses: true) {
-        method name: '*'
-        field name: '*'
-    }
+    keep '@net.minecraftforge.fml.common.Mod class * {*;}'
+    keep "class * implements ${shadowPackage}.jackson.databind.cfg.ConfigFeature {*;}"
+    keepclassmembers 'class * {*;}'
+
     keepattributes()
     keepparameternames()
     dontobfuscate()
@@ -122,6 +123,7 @@ processResources {
 idea {
     module {
         inheritOutputDirs = true
+        jdkName = '1.7'
     }
 
     project {

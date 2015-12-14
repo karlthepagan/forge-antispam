@@ -1,31 +1,51 @@
 ---
 - pattern: /\bconnected with an iPhone using MineChat$/
-- pattern: /^(\[[^<]+\])?</
-  action: "OK"
-  name: "chat"
+- pattern: /^(\[[^\]]+\])?</
+  action: OK
+  name: chat
+- pattern: /^(\[[^\]]+\])?\s*\w+:/
+  action: OK
+  name: chat
 - pattern: /____\.\[.*\]\.____/
-  action: "OK"
-  name: "factions"
+  action: OK
+  name: factions
 - pattern: /^\[ClearLag\]\s/
-  action: "OK"
+  action: OK
 - pattern: /^\[mcMMO\]/
-  action: "OK"
-  name: "mcmmo"
+  action: OK
+  name: mcmmo
   onlyOnce: true
-- pattern: '^\s*\[[^\]+]'
+- pattern: /^\s*\[[^\]+]/
+  name: brackets
   next:
   - pattern: /TeamSpeak/
   - pattern: /Our IP is/
-  - pattern: '/\w+'
+  - pattern: //\w+/
   - pattern: /(?i)rank/
+  - pattern: /(?i)donate/
   - pattern: /claim/
-- pattern: /is now a level/
-- pattern: /^Welcome to/
-- pattern: /^Type\s/
-- pattern: /^Don't forget to check out/
+- pattern: /^\s*[^\[<]/
+  name: not brackets
+  next:
+  - pattern: /^\(From Santa/
+  - pattern: /(?i)^\s*store/
+  - pattern: /(?i)^\s*vote/
+  - pattern: /(?i)^\s*visit/
+  - pattern: /^Hello,\s/
+  - pattern: /^You can pick 3 jobs/
+  - pattern: /^Check the SlimeFun Guide/
+  - pattern: /^Your stuff is UN-Griefable/
+  - pattern: /^Type\s/
+  - pattern: /^Don't forget to check out/
+  - pattern: /(?i)^[\s\S-[\w]]*welcome (\S+\s+)*to/
+  - pattern: /Got .* on /\w+/
+  - pattern: /is now a level/
 - pattern: /^(?i).links.\s/
-- pattern: '(?:[-+~=\*\/]\s?){3}'
-  notAfter: "factions"
+- pattern: /(?:[-+~=\*/]\s?){3}/
+  name: hbar
+  notAfter: factions
+- pattern: /^\s*$/
+  name: whitespace
 - pattern: /(?i)vote/
   next:
   - pattern: /(?i)voted? .* us/

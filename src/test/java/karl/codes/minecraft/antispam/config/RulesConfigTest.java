@@ -37,6 +37,21 @@ public class RulesConfigTest {
         StringWriter wr = new StringWriter();
         target.write(rules,target.getYaml().getFactory().createGenerator(wr),target.yamlOut);
         String value = wr.toString();
+        System.out.println(value);
         rules = target.readNodes(target.getYaml().getFactory().createParser(value),target.getYaml());
+    }
+
+    @Test
+    public void testParseYamlToJson() throws Exception {
+        URL rulesResource = AntiSpam.class.getResource("/antispam.yml");
+        JsonParser parser = target.getYaml().getFactory().createParser(rulesResource);
+
+        List<SpamRuleNode> rules = target.readNodes(parser, target.getYaml());
+
+        StringWriter wr = new StringWriter();
+        target.write(rules,target.getJson().getFactory().createGenerator(wr),target.jsonOut);
+        String value = wr.toString();
+        System.out.println(value);
+        rules = target.readNodes(target.getJson().getFactory().createParser(value),target.getJson());
     }
 }

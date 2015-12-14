@@ -45,8 +45,9 @@ public class AntiSpam {
     public static final String MODID = "antispam";
 
     private Logger log;
+    private File configFile;
 
-    private RuleKernel<ClientChatReceivedEvent, CharSequence> runtime;
+    private volatile RuleKernel<ClientChatReceivedEvent, CharSequence> runtime;
 
     public static AtomicInteger IDS = new AtomicInteger(1);
 
@@ -87,10 +88,15 @@ public class AntiSpam {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         log = event.getModLog();
+        configFile = event.getSuggestedConfigurationFile();
 
+        resetRuntime();
+    }
+
+    private void resetRuntime() {
         runtime = new RuleKernel<>(
                 ChatEvents.CLIENT_CHAT_AS_CHARSEQUENCE,
-                loadRules(event.getSuggestedConfigurationFile())
+                loadRules(configFile)
         );
     }
 
@@ -113,21 +119,30 @@ public class AntiSpam {
 
         Rule<CharSequence> rule = runtime.apply(textKey, event, last);
 
+        IChatComponent old = event.message;
         switch (rule.onHit()) {
             case DENY:
                 if(getPassive()) {
-                    IChatComponent old = event.message;
-                    event.message = new ChatComponentText("BLOCKED: ");
+                    if(rule.name()!= null) {
+                        event.message = new ChatComponentText("BLOCKED(" + rule.name() + "): ");
+                    } else {
+                        event.message = new ChatComponentText("BLOCKED: ");
+                    }
                     event.message.appendSibling(old);
 //                    gui.getChatGUI().printChatMessage(new ChatComponentText("BLOCKED MESSAGE"));
                 } else {
                     event.setCanceled(true);
                 }
+                break;
 
             default:
-                // do nothing
-                lastHitName = rule.name();
+                if (getPassive() && rule.name() != null) {
+                    event.message = new ChatComponentText("(" + rule.name() + "): ");
+                    event.message.appendSibling(old);
+                }
+                break;
         }
+        lastHitName = rule.name();
     }
 
     public boolean getPassive() {
@@ -167,7 +182,8 @@ public class AntiSpam {
                     "deny [string|/regex/]\n" +
                     "commit (all|# ... # #)" + // commit the recorded candidate rules
                     "abort" + // abort auto-commit (10 seconds after a unique rule is staged it will auto-commit)
-                    "hold (10)"; // set auto-commit hold for a specified time
+                    "hold (10)" + // set auto-commit hold for a specified time
+                    "reload"; // reload config from disk
         }
 
         @Override
@@ -213,6 +229,9 @@ public class AntiSpam {
                     }
                 case "debug":
                     setPassive(!getPassive());
+                    return;
+                case "reload":
+                    resetRuntime();
                     return;
                 default:
                     iCommandSender.addChatMessage(new ChatComponentText("not yet implemented"));
