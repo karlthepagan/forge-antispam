@@ -13,115 +13,70 @@ buildscript {
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+//        classpath 'net.minecraftforge.gradle:ForgeGradle:2.0-SNAPSHOT'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
         classpath 'net.sf.proguard:proguard-gradle:5.2.1'
     }
 }
-
-boolean forge1 = true
-
-if(forge1) {
-    apply plugin: 'forge'
-} else {
-    apply plugin: 'net.minecraftforge.gradle.forge'
-}
-
+apply plugin: 'forge' // FG1.2
+//apply plugin: 'net.minecraftforge.gradle.forge' // FG 2.x
 apply plugin: 'com.github.johnrengelman.shadow'
 
 
+
+// ========= Mod Information ============
 def modversion = '0.2.0'
-def mcversion = '1.7.10'
+group = 'karl.codes-minecraft'
+archivesBaseName = 'antispam'
+
+def mcversion = '1.8'
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+// ========= Mod Information ============
+
+
+// ========= Forge Versions ============
 def forgeversion = ['1.8.8':    '11.15.0.1628',
                     '1.8':      '11.14.4.1563',
                     '1.7.10':   '10.13.4.1558-1.7.10']
 def forgeMappings = ['1.8.8':   'snapshot_20151128',
                      '1.8':     'snapshot_20151128',
                      '1.7.10':  'stable_12']
+// ========= Forge Versions ============
 
-version = "$mcversion-$modversion"
-group= 'karl.codes-minecraft'
-archivesBaseName = 'antispam'
-def shadowPackage = "$archivesBaseName.$modversion"
-
-minecraft {
-    version = "$mcversion-${forgeversion[mcversion]}"
-
-    runDir = 'run' // eclipse?
-
-    // default -- mappings = "snapshot_20141130"
-    mappings = forgeMappings[mcversion]
-}
-
+// ========= Artifacts & Dependencies ============
 dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.4'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.6.4'
     testCompile 'junit:junit:4.12'
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
-
-jar {
-    classifier = 'nodeps'
-}
-
-shadowJar {
-    classifier = 'all'
-
-    if(forge1) {
-        dependencies {
-            include(dependency('com.fasterxml.*:.*'))
-            include(dependency('org.yaml.*:.*'))
-        }
-    }
-
-    relocate 'com.fasterxml', shadowPackage
-    relocate 'org.yaml', shadowPackage
-}
-
-if (forge1) {
-    reobf.reobf(shadowJar) { spec ->
-        spec.classpath = sourceSets.main.compileClasspath
-    }
-} else {
-    reobf {
-        shadowJar {
-            // FG2
-            useSrgSrg()
-        }
-    }
-}
-
-
-task deleteOrig(type: Delete) {
-    delete project.tasks.jar.archivePath.getPath()
-}
-
-task deleteShaded(type: Delete) {
-    delete project.tasks.shadowJar.archivePath.getPath()
-}
-
-task proguard(type: proguard.gradle.ProGuardTask) {
-    libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
-    libraryjars sourceSets.main.runtimeClasspath
-
-    dontwarn 'net.minecraft.**'
-    dontwarn 'net.minecraftforge.**'
-
-    injars tasks.shadowJar.archivePath
-    outjars tasks.shadowJar.archivePath.parent + '/' + tasks.jar.archiveName.replace('-nodeps','-proguard')
-
-    keep '@cpw.mods.fml.common.Mod class * {*;}'
-    keep "class * implements ${shadowPackage}.jackson.databind.cfg.ConfigFeature {*;}"
-    keepclassmembers 'class * {*;}'
-
-    keepattributes()
-    keepparameternames()
-    dontobfuscate()
-}
+//tasks.proguard.dependsOn reobfShadowJar
+//tasks.build.dependsOn proguard
 
 artifacts {
+    // TODO conditionals
     archives shadowJar
+}
+// ========= Artifacts & Dependencies ============
+
+
+
+version = "$mcversion-$modversion"
+def shadowPackage = "$archivesBaseName.$modversion"
+
+def ver = { x,y,z -> VersionNumber.parse(x.hasProperty(y)?x[y]:z)}
+
+// TODO move into hints/fixture class describing common workarounds
+def fixedAt = [
+        reobf: VersionNumber.parse('2.0.0'),
+        shadowJar: VersionNumber.parse('2.0.0')
+]
+
+minecraft {
+    version = "$mcversion-${forgeversion[mcversion]}"
+    runDir = 'run'
+    mappings = forgeMappings[mcversion]
 }
 
 compileJava {
@@ -145,6 +100,62 @@ processResources {
     }
 }
 
+jar {
+    classifier = 'nodeps'
+}
+
+shadowJar {
+    classifier = 'all'
+
+    if(ver(minecraft,'forgeGradleVersion','1.2.0') < fixedAt.shadowJar) {
+        dependencies {
+            include(dependency('com.fasterxml.*:.*'))
+            include(dependency('org.yaml.*:.*'))
+        }
+    }
+
+    relocate 'com.fasterxml', shadowPackage
+    relocate 'org.yaml', shadowPackage
+}
+
+if(ver(minecraft,'forgeGradleVersion','1.2.0') < fixedAt.reobf) {
+    reobf.reobf(shadowJar) { spec ->
+        spec.classpath = sourceSets.main.compileClasspath
+    }
+} else {
+    project.reobf {
+        shadowJar { useSrgSrg() }
+    }
+}
+
+
+task proguard(type: proguard.gradle.ProGuardTask) {
+    libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
+    libraryjars sourceSets.main.runtimeClasspath
+
+    dontwarn 'net.minecraft.**'
+    dontwarn 'net.minecraftforge.**'
+
+    injars tasks.shadowJar.archivePath
+    outjars tasks.shadowJar.archivePath.parent + '/' + tasks.jar.archiveName.replace('-nodeps','-proguard')
+
+    keep '@cpw.mods.fml.common.Mod class * {*;}'
+    keep "class * implements ${shadowPackage}.jackson.databind.cfg.ConfigFeature {*;}"
+    keepclassmembers 'class * {*;}'
+
+    keepattributes()
+    keepparameternames()
+    dontobfuscate()
+}
+
+task deleteOrig(type: Delete) {
+    delete project.tasks.jar.archivePath.getPath()
+}
+
+task deleteShaded(type: Delete) {
+    delete project.tasks.shadowJar.archivePath.getPath()
+}
+
 idea {
     module {
         inheritOutputDirs = true
@@ -156,6 +167,27 @@ idea {
     }
 }
 
-//tasks.proguard.dependsOn reobfShadowJar
-//tasks.build.dependsOn proguard
 
+// DEBUG SHIT
+// export GRADLE_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5006"
+class Derps {
+    def stop(Object obj) {
+        println "derps $obj"
+    }
+}
+
+
+task mydebug << {
+
+    println buildscript.configurations.classpath.resolvedConfiguration.firstLevelModuleDependencies.moduleVersion
+    def derp = new Derps()
+    derp.stop(minecraft)
+    derp.stop(minecraft.properties)
+    derp.stop(plugins.find {it.class.name =~ /(?i)forge/})
+    derp.stop(net.minecraftforge.gradle.common.BasePlugin)
+    derp.stop(plugins.findPlugin(net.minecraftforge.gradle.common.BasePlugin))
+    derp.stop(project.properties)
+    derp.stop(buildscript)
+    derp.stop(this)
+    derp.stop({})
+}
