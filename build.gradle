@@ -1,37 +1,39 @@
-// For those who want the bleeding edge
-// 2.0-SNAP needed for OSX - https://github.com/MinecraftForge/MinecraftForge/issues/2183
 buildscript {
     repositories {
         jcenter()
+        mavenCentral()
         maven {
             name = "forge"
             url = "http://files.minecraftforge.net/maven"
         }
+        maven {
+            name = "sonatype"
+            url = "https://oss.sonatype.org/content/repositories/snapshots/"
+        }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.0-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
         classpath 'net.sf.proguard:proguard-gradle:5.2.1'
     }
 }
 
-plugins {
-    id 'com.github.johnrengelman.shadow' version '1.2.2'
+boolean forge1 = true
+
+if(forge1) {
+    apply plugin: 'forge'
+} else {
+    apply plugin: 'net.minecraftforge.gradle.forge'
 }
 
+apply plugin: 'com.github.johnrengelman.shadow'
 
-apply plugin: 'net.minecraftforge.gradle.forge'
-/*
-// for people who want stable
-plugins {
-    id "net.minecraftforge.gradle.forge" version "2.0.2"
-}*/
 
 def modversion = '0.2.0'
-def mcversion = '1.8'
+def mcversion = '1.7.10'
 def forgeversion = ['1.8.8':    '11.15.0.1628',
                     '1.8':      '11.14.4.1563',
-                    '1.7.10':   '10.13.4.1558-1.7.10'] // FG2.0?
+                    '1.7.10':   '10.13.4.1558-1.7.10']
 def forgeMappings = ['1.8.8':   'snapshot_20151128',
                      '1.8':     'snapshot_20151128',
                      '1.7.10':  'stable_12']
@@ -44,7 +46,7 @@ def shadowPackage = "$archivesBaseName.$modversion"
 minecraft {
     version = "$mcversion-${forgeversion[mcversion]}"
 
-    runDir = 'run'
+    runDir = 'run' // eclipse?
 
     // default -- mappings = "snapshot_20141130"
     mappings = forgeMappings[mcversion]
@@ -66,12 +68,37 @@ jar {
 shadowJar {
     classifier = 'all'
 
+    if(forge1) {
+        dependencies {
+            include(dependency('com.fasterxml.*:.*'))
+            include(dependency('org.yaml.*:.*'))
+        }
+    }
+
     relocate 'com.fasterxml', shadowPackage
     relocate 'org.yaml', shadowPackage
 }
 
-reobf {
-    shadowJar { useSrgSrg() }
+if (forge1) {
+    reobf.reobf(shadowJar) { spec ->
+        spec.classpath = sourceSets.main.compileClasspath
+    }
+} else {
+    reobf {
+        shadowJar {
+            // FG2
+            useSrgSrg()
+        }
+    }
+}
+
+
+task deleteOrig(type: Delete) {
+    delete project.tasks.jar.archivePath.getPath()
+}
+
+task deleteShaded(type: Delete) {
+    delete project.tasks.shadowJar.archivePath.getPath()
 }
 
 task proguard(type: proguard.gradle.ProGuardTask) {
@@ -84,7 +111,7 @@ task proguard(type: proguard.gradle.ProGuardTask) {
     injars tasks.shadowJar.archivePath
     outjars tasks.shadowJar.archivePath.parent + '/' + tasks.jar.archiveName.replace('-nodeps','-proguard')
 
-    keep '@net.minecraftforge.fml.common.Mod class * {*;}'
+    keep '@cpw.mods.fml.common.Mod class * {*;}'
     keep "class * implements ${shadowPackage}.jackson.databind.cfg.ConfigFeature {*;}"
     keepclassmembers 'class * {*;}'
 
@@ -92,9 +119,6 @@ task proguard(type: proguard.gradle.ProGuardTask) {
     keepparameternames()
     dontobfuscate()
 }
-
-tasks.proguard.dependsOn reobfShadowJar
-tasks.build.dependsOn proguard
 
 artifacts {
     archives shadowJar
@@ -131,3 +155,7 @@ idea {
         vcs = 'Git'
     }
 }
+
+//tasks.proguard.dependsOn reobfShadowJar
+//tasks.build.dependsOn proguard
+
