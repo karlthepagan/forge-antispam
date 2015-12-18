@@ -27,13 +27,14 @@ plugins {
     id "net.minecraftforge.gradle.forge" version "2.0.2"
 }*/
 
-def modversion = '0.2-SNAPSHOT'
+def modversion = '0.2.0'
 def mcversion = '1.8'
 def forgeversion = ['1.8.8':    '11.15.0.1628',
                     '1.8':      '11.14.4.1563',
                     '1.7.10':   '10.13.4.1558-1.7.10'] // FG2.0?
 def forgeMappings = ['1.8.8':   'snapshot_20151128',
-                     '1.8':     'snapshot_20151128']
+                     '1.8':     'snapshot_20151128',
+                     '1.7.10':  'stable_12']
 
 version = "$mcversion-$modversion"
 group= 'karl.codes-minecraft'
