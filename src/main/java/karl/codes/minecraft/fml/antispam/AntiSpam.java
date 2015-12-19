@@ -1,11 +1,11 @@
-package karl.codes.minecraft.antispam;
+package karl.codes.minecraft.fml.antispam;
 
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.google.common.collect.ImmutableList;
 import karl.codes.minecraft.antispam.config.RulesConfig;
 import karl.codes.minecraft.antispam.rules.SpamRule;
 import karl.codes.rules.Rule;
-import karl.codes.minecraft.ChatEvents;
+import karl.codes.minecraft.srg.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
 import karl.codes.rules.RuleKernel;
 import net.minecraft.client.Minecraft;

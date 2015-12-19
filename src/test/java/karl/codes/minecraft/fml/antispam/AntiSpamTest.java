@@ -1,6 +1,7 @@
-package karl.codes.minecraft.antispam;
+package karl.codes.minecraft.fml.antispam;
 
-import karl.codes.minecraft.ChatEvents;
+import karl.codes.minecraft.srg.ChatEvents;
+import karl.codes.minecraft.antispam.AntiSpamFixture;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;

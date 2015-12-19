@@ -1,7 +1,7 @@
 package karl.codes.minecraft.antispam.config;
 
 import com.fasterxml.jackson.core.JsonParser;
-import karl.codes.minecraft.antispam.AntiSpam;
+import karl.codes.minecraft.fml.antispam.AntiSpam;
 import karl.codes.minecraft.antispam.config.model.SpamRuleNode;
 import org.junit.After;
 import org.junit.Before;

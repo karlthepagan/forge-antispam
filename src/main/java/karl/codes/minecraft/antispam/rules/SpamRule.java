@@ -2,7 +2,7 @@ package karl.codes.minecraft.antispam.rules;
 
 import karl.codes.rules.Action;
 import karl.codes.rules.Rule;
-import karl.codes.minecraft.antispam.AntiSpam;
+import karl.codes.minecraft.fml.antispam.AntiSpam;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

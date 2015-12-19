@@ -1,4 +1,4 @@
-package karl.codes.minecraft;
+package karl.codes.minecraft.srg;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
