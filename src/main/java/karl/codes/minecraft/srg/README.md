@@ -1,0 +1,1 @@
+minecraft.srg classes are tightly coupled to MCP deobfuscated code
