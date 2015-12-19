@@ -29,7 +29,7 @@ if(forge1) {
 apply plugin: 'com.github.johnrengelman.shadow'
 
 
-def modversion = '0.2.0'
+def modversion = '0.2.1-SNAPSHOT'
 def mcversion = '1.7.10'
 def forgeversion = ['1.8.8':    '11.15.0.1628',
                     '1.8':      '11.14.4.1563',

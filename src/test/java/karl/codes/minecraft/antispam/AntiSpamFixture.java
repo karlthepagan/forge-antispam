@@ -32,7 +32,8 @@ public class AntiSpamFixture {
 
     public static class Chat extends ClientChatReceivedEvent {
         public Chat(IChatComponent message) {
-            super((byte)0,message);
+            // TODO mc 1.7.10 vs 1.8.8
+            super(message);
         }
 
         public boolean isCancelable() {

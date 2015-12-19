@@ -27,7 +27,7 @@ public class SpamRule implements Rule<CharSequence> {
 
     private static ConcurrentMap<String,String> EXAMPLES = new ConcurrentHashMap<>();
 
-    private final int id = AntiSpam.nextRuleId();
+    private final int id = AntiSpam.nextRuleId(); // TODO XXX rule id needs its own class
 
     private String stringify = null;
 

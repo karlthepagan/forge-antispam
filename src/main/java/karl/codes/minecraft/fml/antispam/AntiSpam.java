@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.google.common.collect.ImmutableList;
 import karl.codes.minecraft.antispam.config.RulesConfig;
 import karl.codes.minecraft.antispam.rules.SpamRule;
+import karl.codes.minecraft.forge.client.event.EventFixture;
 import karl.codes.rules.Rule;
 import karl.codes.minecraft.srg.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
@@ -26,6 +27,8 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -33,6 +36,7 @@ import java.net.URL;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 @Mod(
         useMetadata = true,
@@ -55,6 +59,7 @@ public class AntiSpam {
 
     private String lastHitName = null;
 
+    // TODO proxy
     private GuiIngame gui;
 
     public AntiSpam() {
@@ -95,7 +100,7 @@ public class AntiSpam {
 
     private void resetRuntime() {
         runtime = new RuleKernel<>(
-                ChatEvents.CLIENT_CHAT_AS_CHARSEQUENCE,
+                EventFixture.CLIENT_CHAT_AS_CHARSEQUENCE,
                 loadRules(configFile)
         );
     }
@@ -104,7 +109,7 @@ public class AntiSpam {
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
         ClientCommandHandler.instance.registerCommand(new Command());
-        gui = Minecraft.getMinecraft().ingameGUI;
+        gui = Minecraft.getMinecraft().ingameGUI; // TODO proxy
     }
 
     @SubscribeEvent
@@ -114,22 +119,24 @@ public class AntiSpam {
 
     @SubscribeEvent
     public void event(ClientChatReceivedEvent event) {
+        spiEvent(event,EventFixture.CLIENT_CHAT_PREPEND_MUTATOR);
+    }
+
+    // TODO move to core
+    public <T extends ClientChatReceivedEvent> void spiEvent(T event, Consumer<Pair<String,T>> eventMutator) {
         String last = lastHitName;
-        Object textKey = ChatEvents.textKey(event.message, last);
+        Object textKey = EventFixture.messageKey(event, last); // TODO static call -> function
 
         Rule<CharSequence> rule = runtime.apply(textKey, event, last);
 
-        IChatComponent old = event.message;
         switch (rule.onHit()) {
             case DENY:
                 if(getPassive()) {
                     if(rule.name()!= null) {
-                        event.message = new ChatComponentText("BLOCKED(" + rule.name() + "): ");
+                        eventMutator.accept(ImmutablePair.of("BLOCKED(" + rule.name() + "): ",event));
                     } else {
-                        event.message = new ChatComponentText("BLOCKED: ");
+                        eventMutator.accept(ImmutablePair.of("BLOCKED: ",event));
                     }
-                    event.message.appendSibling(old);
-//                    gui.getChatGUI().printChatMessage(new ChatComponentText("BLOCKED MESSAGE"));
                 } else {
                     event.setCanceled(true);
                 }
@@ -137,8 +144,7 @@ public class AntiSpam {
 
             default:
                 if (getPassive() && rule.name() != null) {
-                    event.message = new ChatComponentText("(" + rule.name() + "): ");
-                    event.message.appendSibling(old);
+                    eventMutator.accept(ImmutablePair.of("(" + rule.name() + "): ",event));
                 }
                 break;
         }
@@ -157,6 +163,7 @@ public class AntiSpam {
         return IDS.getAndIncrement();
     }
 
+    // TODO apply SPI design
     class Command extends CommandBase {
         @Override
         public String getCommandName() {

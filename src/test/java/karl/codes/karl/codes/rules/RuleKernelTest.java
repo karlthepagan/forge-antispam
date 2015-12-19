@@ -14,7 +14,7 @@ import org.junit.Test;
 public class RuleKernelTest {
     @Before
     public void setUp() throws Exception {
-        target = new RuleKernel<>(Functions.identity(),null);
+        target = new RuleKernel<>(Functions.<String>identity(),null);
     }
 
     @After
