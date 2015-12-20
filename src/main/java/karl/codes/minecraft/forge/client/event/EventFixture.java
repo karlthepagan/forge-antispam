@@ -1,6 +1,7 @@
 package karl.codes.minecraft.forge.client.event;
 
 import com.google.common.base.Function;
+import cpw.mods.fml.common.eventhandler.Event;
 import karl.codes.minecraft.srg.ChatEvents;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
@@ -20,6 +21,13 @@ public class EventFixture {
         public CharSequence apply(ClientChatReceivedEvent input) {
             // TODO this is copy-avoidance in the extreme, it is possibly slower because of many small strings, even with the reduce operation
             return ChatEvents.asCharSequence(input.message);
+        }
+    };
+
+    public static final Consumer<Event> CANCEL_EVENT = new Consumer<Event>() {
+        @Override
+        public void accept(Event event) {
+            event.setCanceled(true);
         }
     };
 

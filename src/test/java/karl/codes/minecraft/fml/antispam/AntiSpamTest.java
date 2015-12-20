@@ -22,7 +22,7 @@ public class AntiSpamTest {
 
     @Before
     public void setUp() throws Exception {
-        target = new AntiSpam();
+        target = new AntiSpamClientSide();
         // TODO need mock events?
         // TODO look at fml.common.Loader - could we have a mock context? e.g. https://docs.spring.io/spring/docs/current/spring-framework-reference/html/integration-testing.html
         target.preInit(new FMLPreInitializationEvent(null,null) {
@@ -41,7 +41,7 @@ public class AntiSpamTest {
         target = null;
     }
 
-    AntiSpam target;
+    AntiSpamClientSide target;
 
     @Test
     public void testApplyRules() throws Exception {
