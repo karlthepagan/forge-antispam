@@ -11,10 +11,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketVersion;
+import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketClientCompressionHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -24,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLException;
@@ -38,8 +36,13 @@ import java.util.concurrent.Future;
 public class BotService {
     final EventLoopGroup group = new NioEventLoopGroup();
 
+    final ByteBuf CR = Unpooled.copiedBuffer("\r\n",CharsetUtil.UTF_8);
     final ByteBuf PASS_MSG = Unpooled.copiedBuffer("PASS oauth:",CharsetUtil.UTF_8);
     final ByteBuf NICK_MSG = Unpooled.copiedBuffer("NICK ",CharsetUtil.UTF_8);
+
+    final ByteBuf CAP_MEMBER = Unpooled.copiedBuffer("CAP REQ :twitch.tv/membership",CharsetUtil.UTF_8);
+    final ByteBuf CAP_COMMANDS = Unpooled.copiedBuffer("CAP REQ :twitch.tv/commands",CharsetUtil.UTF_8);
+    final ByteBuf CAP_TAGS = Unpooled.copiedBuffer("CAP REQ :twitch.tv/tags",CharsetUtil.UTF_8);
 
     Channel ch = null;
 
@@ -48,8 +51,16 @@ public class BotService {
 
     @PostConstruct
     public void init() throws URISyntaxException, SSLException, InterruptedException {
+        validate(properties);
+
         if(properties.isConnectOnStartup()) {
             this.connect();
+        }
+    }
+
+    protected void validate(BotProperties properties) throws IllegalArgumentException {
+        if(StringUtils.isEmpty(properties.getChatToken())) {
+            throw new IllegalArgumentException("chatToken is empty");
         }
     }
 
@@ -117,13 +128,27 @@ public class BotService {
             handler.handshakeFuture().sync();
 
             ch.write(
-                    text(PASS_MSG, Unpooled.copiedBuffer(properties.getChatToken(),CharsetUtil.UTF_8))
+                    // TODO concatenate, composite buffer not working
+                    text(PASS_MSG, Unpooled.copiedBuffer(properties.getChatToken(),CharsetUtil.UTF_8), CR)
             );
 
             ch.writeAndFlush(
-                    text(NICK_MSG, Unpooled.copiedBuffer(properties.getName(),CharsetUtil.UTF_8))
+                    text(NICK_MSG, Unpooled.copiedBuffer(properties.getName(),CharsetUtil.UTF_8), CR)
             ).sync();
 
+//            ch.write(CAP_MEMBER);
+//            ch.write(CAP_COMMANDS);
+//            ch.writeAndFlush(CAP_TAGS).sync();
+/*
+welcome message is:
+ Client received message: :tmi.twitch.tv 001 karlthepagan :Welcome, GLHF!
+:tmi.twitch.tv 002 karlthepagan :Your host is tmi.twitch.tv
+:tmi.twitch.tv 003 karlthepagan :This server is rather new
+:tmi.twitch.tv 004 karlthepagan :-
+:tmi.twitch.tv 375 karlthepagan :-
+:tmi.twitch.tv 372 karlthepagan :You are in a maze of twisty passages, all alike.
+:tmi.twitch.tv 376 karlthepagan :>
+ */
             crashed = false;
             return new AsyncResult<>(connect);
         } finally {
@@ -140,6 +165,21 @@ public class BotService {
     }
 
     public Future<?> disconnect() {
+        ch.writeAndFlush(new CloseWebSocketFrame());
         return group.shutdownGracefully();
+    }
+
+    public void wsPing() {
+        WebSocketFrame frame = new PingWebSocketFrame(Unpooled.wrappedBuffer(new byte[] { 8, 1, 8, 1 }));
+        ch.writeAndFlush(frame);
+    }
+
+    public void text(String msg) {
+        if(StringUtils.isEmpty(msg)) {
+            return;
+        }
+
+        WebSocketFrame frame = new TextWebSocketFrame(msg);
+        ch.writeAndFlush(frame);
     }
 }

@@ -35,7 +35,7 @@ public class BotProperties {
     }
 
     public void setChatToken(String chatToken) {
-        this.chatToken = chatToken;
+        this.chatToken = chatToken.replaceAll("oauth:","");
     }
 
     public boolean isConnectOnStartup() {
