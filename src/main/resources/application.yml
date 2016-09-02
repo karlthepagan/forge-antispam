@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./target/h2db/chatters;MVCC=TRUE
+
+irc-bot:
+#  url: wss://irc.twitch.tv
+  name: karlbot
+  connectOnStartup: true

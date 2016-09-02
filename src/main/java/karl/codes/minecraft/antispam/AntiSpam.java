@@ -8,25 +8,8 @@ import karl.codes.rules.Rule;
 import karl.codes.minecraft.ChatEvents;
 import karl.codes.minecraft.antispam.rules.DefaultRules;
 import karl.codes.rules.RuleKernel;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.gui.GuiIngame;
-import net.minecraft.command.CommandBase;
-import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.IChatComponent;
-import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.client.event.ClientChatReceivedEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.URL;
@@ -34,27 +17,18 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Mod(
-        useMetadata = true,
-        modid = AntiSpam.MODID,
-        acceptableRemoteVersions = "*",
-        acceptedMinecraftVersions = "[1.7.0,)",
-        canBeDeactivated = true)
-@SideOnly(Side.CLIENT)
 public class AntiSpam {
     public static final String MODID = "antispam";
 
     private Logger log;
 
-    private RuleKernel<ClientChatReceivedEvent, CharSequence> runtime;
+    private RuleKernel<Object, CharSequence> runtime;
 
     public static AtomicInteger IDS = new AtomicInteger(1);
 
     private boolean passive = false;
 
     private String lastHitName = null;
-
-    private GuiIngame gui;
 
     public AntiSpam() {
     }
@@ -84,44 +58,40 @@ public class AntiSpam {
         return rules;
     }
 
-    @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-        log = event.getModLog();
+    public void preInit(Object event) {
+        log = LoggerFactory.getLogger(AntiSpam.class);
 
         runtime = new RuleKernel<>(
                 ChatEvents.CLIENT_CHAT_AS_CHARSEQUENCE,
-                loadRules(event.getSuggestedConfigurationFile())
+                loadRules(new File("application.yml"))
         );
     }
 
-    @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        MinecraftForge.EVENT_BUS.register(this);
-        ClientCommandHandler.instance.registerCommand(new Command());
-        gui = Minecraft.getMinecraft().ingameGUI;
+    public void init(Object event) {
+//        MinecraftForge.EVENT_BUS.register(this);
+//        ClientCommandHandler.instance.registerCommand(new Command());
+//        gui = Minecraft.getMinecraft().ingameGUI;
     }
 
-    @SubscribeEvent
-    public void onLoad(WorldEvent.Load event) {
+    public void onLoad(Object event) {
         runtime.clear();
     }
 
-    @SubscribeEvent
-    public void event(ClientChatReceivedEvent event) {
+    public void event(Object event) {
         String last = lastHitName;
-        Object textKey = ChatEvents.textKey(event.message, last);
+        Object textKey = ChatEvents.textKey(event, last);
 
         Rule<CharSequence> rule = runtime.apply(textKey, event, last);
 
         switch (rule.onHit()) {
             case DENY:
                 if(getPassive()) {
-                    IChatComponent old = event.message;
-                    event.message = new ChatComponentText("BLOCKED: ");
-                    event.message.appendSibling(old);
+//                    IChatComponent old = event.message;
+//                    event.message = new ChatComponentText("BLOCKED: ");
+//                    event.message.appendSibling(old);
 //                    gui.getChatGUI().printChatMessage(new ChatComponentText("BLOCKED MESSAGE"));
                 } else {
-                    event.setCanceled(true);
+//                    event.setCanceled(true);
                 }
 
             default:
@@ -142,6 +112,7 @@ public class AntiSpam {
         return IDS.getAndIncrement();
     }
 
+    /*
     class Command extends CommandBase {
         @Override
         public String getCommandName() {
@@ -244,5 +215,5 @@ public class AntiSpam {
                     return "";
             }
         }
-    }
+    }*/
 }

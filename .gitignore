@@ -16,6 +16,7 @@
 /options.txt
 /*.iml
 /usernamecache.json
-/secret*
+**/secret*
+**/*-secret.*
 /hs_err_pid*.log
 /servers.dat

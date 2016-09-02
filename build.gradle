@@ -1,123 +1,46 @@
-// For those who want the bleeding edge
-// 2.0-SNAP needed for OSX - https://github.com/MinecraftForge/MinecraftForge/issues/2183
 buildscript {
     repositories {
         jcenter()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
+        maven { url 'http://repo.spring.io/snapshot' }
+	maven { url 'http://repo.spring.io/milestone' }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.0-SNAPSHOT'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
-        classpath 'net.sf.proguard:proguard-gradle:5.2.1'
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:1.4.1.BUILD-SNAPSHOT'
     }
 }
 
-plugins {
-    id 'com.github.johnrengelman.shadow' version '1.2.2'
-}
+apply plugin: 'java'
+apply plugin: 'spring-boot'
+apply plugin: 'idea'
 
 
-apply plugin: 'net.minecraftforge.gradle.forge'
-/*
-// for people who want stable
-plugins {
-    id "net.minecraftforge.gradle.forge" version "2.0.2"
-}*/
-
-def mcversion = '1.8'
-def modversion = '0.2-SNAPSHOT'
-
-version = "$mcversion-$modversion"
-group= 'karl.codes-minecraft'
+version = '1.0-SNAPSHOT'
+group= 'karl.codes-twitch'
 archivesBaseName = 'antispam'
 
-minecraft {
-//    version = '10.13.4.1517-1.7.10'
-//    version = '1.8-11.14.3.1450' // recommended FG 1.2
-//    version = '1.8-11.14.3.1504' // inventory-tweaks FG2
-    version = "$mcversion-11.14.4.1563"
-
-    runDir = 'run'
-
-    // default -- mappings = "snapshot_20141130"
-    mappings = "snapshot_20151128"
+repositories {
+    jcenter()
+    maven { url 'http://repo.spring.io/snapshot' }
+    maven { url 'http://repo.spring.io/milestone' }
 }
 
 dependencies {
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.6.4'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.6.4'
-    testCompile 'junit:junit:4.12'
+    compile 'org.springframework.boot:spring-boot-starter-web'
+    compile 'com.google.guava:guava:19.0'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.8.1'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.8.1'
+    compile 'org.springframework.boot:spring-boot-configuration-processor'
+    compile 'io.netty:netty-all:4.1.4.Final'
+
+
+    compile group: 'org.projectlombok', name: 'lombok', version: '1.16.10'
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+compileJava.dependsOn(processResources)
 
-jar {
-    classifier = 'nodeps'
-}
-
-shadowJar {
-    def dst = "${project.archivesBaseName}.$modversion"
-
-    classifier = 'all'
-
-    relocate 'com.fasterxml', dst
-    relocate 'org.yaml', dst
-}
-
-reobf {
-    shadowJar { useSrgSrg() }
-}
-
-task proguard(type: proguard.gradle.ProGuardTask) {
-    libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
-    libraryjars sourceSets.main.runtimeClasspath
-
-    dontwarn 'net.minecraft.**'
-    dontwarn 'net.minecraftforge.**'
-
-    injars tasks.shadowJar.archivePath
-    outjars tasks.shadowJar.archivePath.parent + '/' + tasks.jar.archiveName.replace('-nodeps','-proguard')
-
-    keep(annotation: 'net.minecraftforge.fml.common.Mod', includedescriptorclasses: true) {
-        method name: '*'
-        field name: '*'
-    }
-    keepattributes()
-    keepparameternames()
-    dontobfuscate()
-}
-
-tasks.proguard.dependsOn reobfShadowJar
-tasks.build.dependsOn proguard
-
-artifacts {
-    archives shadowJar
-}
-
-compileJava {
-    options.debug = true
-    options.debugOptions.debugLevel = 'source,lines,vars'
-}
-
-processResources {
-    inputs.property 'version', project.version
-    inputs.property 'mcversion', project.minecraft.version
-
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-
-        // replace version and mcversion
-        expand version: project.version, mcversion: project.minecraft.version
-    }
-
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-    }
-}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 idea {
     module {
