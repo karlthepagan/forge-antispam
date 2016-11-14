@@ -102,6 +102,10 @@ public class SpamRule implements Rule<CharSequence> {
 
         makeString(m,last);
 
+        return applyFunction(m,last);
+    }
+
+    private boolean applyFunction(Matcher m, String last) {
         return true;
     }
 

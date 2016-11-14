@@ -4,5 +4,5 @@ spring:
 
 irc-bot:
   url: wss://irc-ws.chat.twitch.tv
-  user: karlthepagan
+  name: karlthepagan
 #  connectOnStartup: true

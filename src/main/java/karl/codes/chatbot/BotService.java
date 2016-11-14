@@ -17,6 +17,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
@@ -34,15 +36,17 @@ import java.util.concurrent.Future;
  */
 @Service
 public class BotService {
+    private static final Logger log = LoggerFactory.getLogger(BotService.class);
+
     final EventLoopGroup group = new NioEventLoopGroup();
 
-    final ByteBuf CR = Unpooled.copiedBuffer("\r\n",CharsetUtil.UTF_8);
+    final ByteBuf CR = Unpooled.copiedBuffer("\n",CharsetUtil.UTF_8);
     final ByteBuf PASS_MSG = Unpooled.copiedBuffer("PASS oauth:",CharsetUtil.UTF_8);
     final ByteBuf NICK_MSG = Unpooled.copiedBuffer("NICK ",CharsetUtil.UTF_8);
 
-    final ByteBuf CAP_MEMBER = Unpooled.copiedBuffer("CAP REQ :twitch.tv/membership",CharsetUtil.UTF_8);
-    final ByteBuf CAP_COMMANDS = Unpooled.copiedBuffer("CAP REQ :twitch.tv/commands",CharsetUtil.UTF_8);
-    final ByteBuf CAP_TAGS = Unpooled.copiedBuffer("CAP REQ :twitch.tv/tags",CharsetUtil.UTF_8);
+    final ByteBuf CAP_MEMBER = Unpooled.copiedBuffer("CAP REQ :twitch.tv/membership\n",CharsetUtil.UTF_8);
+    final ByteBuf CAP_COMMANDS = Unpooled.copiedBuffer("CAP REQ :twitch.tv/commands\n",CharsetUtil.UTF_8);
+    final ByteBuf CAP_TAGS = Unpooled.copiedBuffer("CAP REQ :twitch.tv/tags\n",CharsetUtil.UTF_8);
 
     Channel ch = null;
 
@@ -54,7 +58,7 @@ public class BotService {
         validate(properties);
 
         if(properties.isConnectOnStartup()) {
-            this.connect();
+            this.connect(true);
         }
     }
 
@@ -62,10 +66,14 @@ public class BotService {
         if(StringUtils.isEmpty(properties.getChatToken())) {
             throw new IllegalArgumentException("chatToken is empty");
         }
+
+        if(StringUtils.isEmpty(properties.getName())) {
+            throw new IllegalArgumentException("name is empty");
+        }
     }
 
     @Async
-    public Future<ChannelFuture> connect() throws URISyntaxException, SSLException, InterruptedException {
+    public Future<ChannelFuture> connect(boolean auth) throws URISyntaxException, SSLException, InterruptedException {
         URI uri = new URI(properties.getUrl());
         String scheme = uri.getScheme() == null? "ws" : uri.getScheme();
         final String host = uri.getHost() == null? "127.0.0.1" : uri.getHost();
@@ -127,19 +135,33 @@ public class BotService {
             ch = connect.sync().channel();
             handler.handshakeFuture().sync();
 
-            ch.write(
-                    // TODO concatenate, composite buffer not working
-                    text(PASS_MSG, Unpooled.copiedBuffer(properties.getChatToken(),CharsetUtil.UTF_8), CR)
-            );
+            if(auth) {
+                text("PASS oauth:" + properties.getChatToken() + "\n").sync();
+                log.info("Authenticated");
 
-            ch.writeAndFlush(
-                    text(NICK_MSG, Unpooled.copiedBuffer(properties.getName(),CharsetUtil.UTF_8), CR)
-            ).sync();
+                text("NICK " + properties.getName() + "\n").sync();
+                log.info("Nickname");
+
+//                ch.write(buf(CAP_MEMBER));
+//                ch.write(buf(CAP_COMMANDS));
+//                ch.write(buf(CAP_TAGS)).sync();
+//                log.info("Requested capabilities");
+
+//                ch.write(buf(PASS_MSG, Unpooled.copiedBuffer(properties.getChatToken(),CharsetUtil.UTF_8), CR));
+//
+//                ch.write(buf(NICK_MSG, Unpooled.copiedBuffer(properties.getName(),CharsetUtil.UTF_8), CR));
+            }
 
 //            ch.write(CAP_MEMBER);
 //            ch.write(CAP_COMMANDS);
 //            ch.writeAndFlush(CAP_TAGS).sync();
 /*
+fail to connect is:
+:tmi.twitch.tv NOTICE * :Login authentication failed
+
+bad syntax:
+just disconnects
+
 welcome message is:
  Client received message: :tmi.twitch.tv 001 karlthepagan :Welcome, GLHF!
 :tmi.twitch.tv 002 karlthepagan :Your host is tmi.twitch.tv
@@ -158,7 +180,11 @@ welcome message is:
         }
     }
 
-    private WebSocketFrame text(ByteBuf ... parts) {
+    private WebSocketFrame buf(ByteBuf ... parts) {
+        if(parts.length == 1) {
+            return new TextWebSocketFrame(parts[0]);
+        }
+
         return new TextWebSocketFrame(
                 Unpooled.compositeBuffer(parts.length).addComponents(parts)
         );
@@ -174,12 +200,12 @@ welcome message is:
         ch.writeAndFlush(frame);
     }
 
-    public void text(String msg) {
+    public ChannelFuture text(String msg) {
         if(StringUtils.isEmpty(msg)) {
-            return;
+            return ch.voidPromise();
         }
 
         WebSocketFrame frame = new TextWebSocketFrame(msg);
-        ch.writeAndFlush(frame);
+        return ch.writeAndFlush(frame);
     }
 }

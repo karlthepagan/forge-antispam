@@ -30,12 +30,21 @@ public class SpamRuleNode {
     private boolean onlyOnce = false;
     @JsonProperty
     private String notAfter = null;
+    @JsonProperty
+    private String send = null;
+
     private List<SpamRuleNode> next = null;
 
     @JsonSetter
     public void setNext(List<SpamRuleNode> next) {
         action = Action.NEXT;
         this.next = next;
+    }
+
+    @JsonSetter
+    public void setSend(String script) {
+        action = Action.APPLY;
+        this.send = script;
     }
 
     @JsonGetter
@@ -55,6 +64,9 @@ public class SpamRuleNode {
             for(SpamRuleNode node : next) {
                 rule = rule.then(node.build());
             }
+        }
+        if(send != null) {
+            // TODO add action
         }
 
         return rule.build();

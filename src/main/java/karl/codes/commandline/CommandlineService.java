@@ -31,8 +31,12 @@ public class CommandlineService {
                 case "break":
                     break;
 
+                case "open":
+                    bot.connect(false);
+                    break;
+
                 case "connect":
-                    bot.connect();
+                    bot.connect(true);
                     break;
 
                 case "bye":

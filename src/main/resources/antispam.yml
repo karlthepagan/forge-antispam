@@ -1,34 +1,20 @@
 ---
-- pattern: /\bconnected with an iPhone using MineChat$/
-- pattern: /^(\[[^<]+\])?</
-  action: "OK"
-  name: "chat"
-- pattern: /____\.\[.*\]\.____/
-  action: "OK"
-  name: "factions"
-- pattern: /^\[ClearLag\]\s/
-  action: "OK"
-- pattern: /^\[mcMMO\]/
-  action: "OK"
-  name: "mcmmo"
-  onlyOnce: true
-- pattern: '^\s*\[[^\]+]'
+- pattern: /^001/
+  send: CAP REQ :twitch.tv/membership
+        CAP REQ :twitch.tv/commands
+        CAP REQ :twitch.tv/tags
+- pattern: /^PING/
+  send: PONG
+- pattern: /:(?P<nick>[^!]+)\S+ PRIVMSG (?P<chan>\S+) :/
+  session:
+  - nick
+  - chan
+  name: chat
+  match: $tail
   next:
-  - pattern: /TeamSpeak/
-  - pattern: /Our IP is/
-  - pattern: '/\w+'
-  - pattern: /(?i)rank/
-  - pattern: /claim/
-- pattern: /is now a level/
-- pattern: /^Welcome to/
-- pattern: /^Type\s/
-- pattern: /^Don't forget to check out/
-- pattern: /^(?i).links.\s/
-- pattern: '(?:[-+~=\*\/]\s?){3}'
-  notAfter: "factions"
-- pattern: /(?i)vote/
-  next:
-  - pattern: /(?i)voted? .* us/
-  - pattern: /(?i)you .* votes?/
-  - pattern: /(?i)has voted @/
-  - pattern: /^\[Vote4Cash\]/
+  - file: bans.yml
+    send: PRIVMSG $chan .ban $nick $rule
+  - file: infractions.yml
+    send: PRIVMSG $chan .timeout $nick $infractions[$nick] $rule
+  - file: wordfilter.yml
+    send: PRIVMSG $chan .timeout $nick 1 $rule
